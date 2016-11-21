@@ -1,7 +1,7 @@
 # Site settings
 title: Luffy Blog
 SEOTitle: Luffy Blog
-header-img: img/background1.jpg
+header-img: img/topbackground.jpg
 email: luffy19920109@gmail.com
 description: "艺术家 | GameDeveloper | 让世界更有趣"
 keyword: "鲁岳，游戏开发，吉他音乐爱好者"
@@ -63,7 +63,7 @@ duoshuo_share: true                     # set to false if you want to use Commen
 # ba_track_id: [your track id]
 
 # Google Analytics
-ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
+#ga_track_id: 'UA-49627206-1'            # Format: UA-xxxxxx-xx
 #ga_domain: huangxuan.me
 
 
