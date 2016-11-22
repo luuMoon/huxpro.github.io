@@ -1,6 +1,6 @@
 ---
 layout:     page
-title:      "About"
+title:      "Lu Yue"
 date:       2016-11-22 
 author:     "Luffy"
 header-img: "img/post-bg-unix-linux.jpg"
