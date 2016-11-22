@@ -9,17 +9,17 @@ header-img: "img/post-bg-unix-linux.jpg"
 ---
 
 
-## 教育背景
+##教育背景
 
 * ABC degree from XYZ University.
 * ABC degree from XYZ University.
 * ABC degree from XYZ University.
 
-## 个人信息
+##个人信息
 
 Founder, ABC Organisation
 
-## 技能
+##技能
 
 * **Skill 1** - `Skill` / `Skill` / `Skill` / `Skill`
 * **Skill 2** - `Skill` / `Skill` / `Skill` / `Skill` / `Skill` / `Skill` / `Skill`
@@ -29,7 +29,7 @@ Founder, ABC Organisation
 * **Skill 6** - `Skill` / `Skill` 
     
     
-## 工作经验
+##工作经验
 
 
 * [**This is my first achievement**](#) 
@@ -48,5 +48,5 @@ Founder, ABC Organisation
 
    Proin pellentesque malesuada mauris, quis aliquam augue vestibulum ac. Vestibulum ut feugiat nibh. Sed faucibus felis purus, sed convallis leo dictum vehicula
 
-## 联系方式
+##联系方式
 [Gmail](mailto:luyue19920109@gmail.com)    [QQ](QQ:229078293)
