@@ -5,20 +5,21 @@ subtitle:   "探索更有趣的世界"
 date:       2016-11-22 
 author:     "Luffy"
 header-img: "img/post-bg-unix-linux.jpg"
+
 ---
 
-一个逗比类人猿
-## Education
+
+## 教育背景
 
 * ABC degree from XYZ University.
 * ABC degree from XYZ University.
 * ABC degree from XYZ University.
 
-## Roles
+## 个人信息
 
 Founder, ABC Organisation
 
-## Skills
+## 技能
 
 * **Skill 1** - `Skill` / `Skill` / `Skill` / `Skill`
 * **Skill 2** - `Skill` / `Skill` / `Skill` / `Skill` / `Skill` / `Skill` / `Skill`
@@ -28,7 +29,7 @@ Founder, ABC Organisation
 * **Skill 6** - `Skill` / `Skill` 
     
     
-## Achievements
+## 工作经验
 
 
 * [**This is my first achievement**](#) 
@@ -48,6 +49,5 @@ Founder, ABC Organisation
    Proin pellentesque malesuada mauris, quis aliquam augue vestibulum ac. Vestibulum ut feugiat nibh. Sed faucibus felis purus, sed convallis leo dictum vehicula
 
 
-## Contact me
-
-[agarwal.akshay.akshay8@gmail.com](mailto:agarwal.akshay.akshay8@gmail.com)
+## 联系方式
+[Gmail](mailto:agarwal.akshay.akshay8@gmail.com)    [QQ](QQ:229078293)
