@@ -1,5 +1,5 @@
 ---
-layout:     page
+layout:     post
 title:      "About"
 subtitle:   "探索更有趣的世界"
 date:       2016-11-22 
