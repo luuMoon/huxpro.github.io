@@ -9,17 +9,17 @@ header-img: "img/post-bg-unix-linux.jpg"
 ---
 
 
-##教育背景
+## 教育背景
 
 * ABC degree from XYZ University.
 * ABC degree from XYZ University.
 * ABC degree from XYZ University.
 
-##个人信息
+## 个人信息
 
 Founder, ABC Organisation
 
-##技能
+## 技能
 
 * **Skill 1** - `Skill` / `Skill` / `Skill` / `Skill`
 * **Skill 2** - `Skill` / `Skill` / `Skill` / `Skill` / `Skill` / `Skill` / `Skill`
@@ -29,7 +29,7 @@ Founder, ABC Organisation
 * **Skill 6** - `Skill` / `Skill` 
     
     
-##工作经验
+## 工作经验
 
 
 * [**This is my first achievement**](#) 
