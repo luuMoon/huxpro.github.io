@@ -1,13 +1,13 @@
 ---
 layout:     post
-title:      "Hello 2015"
-subtitle:   " \"Hello World, Hello Blog\""
-date:       2015-01-29 12:00:00
-author:     "Hux"
+title:      "通过Unity学习编译原理"
+subtitle:   "编译原理的分析与实现"
+date:       2016-11-24 
+author:     "Luffy"
 header-img: "img/post-bg-2015.jpg"
 catalog: true
 tags:
-    - 生活
+    - 基础知识
 ---
 
 
