@@ -1,5 +1,5 @@
 ---
-layout:     post
+layout:     page
 title:      "About"
 date:       2016-11-24 
 author:     "Luffy"
