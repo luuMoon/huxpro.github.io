@@ -1,13 +1,13 @@
 ---
 layout:     post
-title:      "使用U3D学习Compiler"
-subtitle:   "111“
-date:       2016-11-24
-author:     "Luffy"
+title:      "Hello 2015"
+subtitle:   " \"Hello World, Hello Blog\""
+date:       2015-01-29 12:00:00
+author:     "Hux"
 header-img: "img/post-bg-2015.jpg"
 catalog: true
 tags:
-    - 基础知识
+    - 生活
 ---
 
 
@@ -21,6 +21,6 @@ tags:
 
 
 
-—— Luffy's Game
+
 
 
