@@ -4,7 +4,7 @@ title:      "编译原理学习"
 subtitle:   "使用U3D学习编译原理"
 date:       2016-11-24
 author:     "Luffy"
-header-img: "img/post-bg-os-metro.jpg"
+header-img: "img/BG/background1.jpg"
 catalog: true
 tags:
     - 基础知识
