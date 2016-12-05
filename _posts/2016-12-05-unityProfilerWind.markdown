@@ -4,7 +4,7 @@ title:      "U3D性能优化学习笔记"
 subtitle:   "性能测试工具学习"
 date:       2016-12-04
 author:     "Luffy"
-header-img: "img/pbackground1.jpg"
+header-img: "img/BG/topbackground.jpg"
 catalog: true
 tags:
     - Unity3D
