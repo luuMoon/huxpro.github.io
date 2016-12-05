@@ -1,7 +1,7 @@
 # Site settings
 title: Luffy Blog
 SEOTitle: Luffy Blog
-header-img: img/topbackground.jpg
+header-img: img/BG/topbackground.jpg
 email: luffy19920109@gmail.com
 description: "艺术家 | GameDeveloper | 让世界更有趣"
 keyword: "鲁岳，游戏开发，吉他音乐爱好者"
@@ -71,7 +71,7 @@ duoshuo_share: true                     # set to false if you want to use Commen
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
 sidebar-about-description: "为天地立心，为生民立命。<br>继往圣之绝学，开万世之太平。"
-sidebar-avatar: /img/head.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
+sidebar-avatar: /img/BG/head.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
 
