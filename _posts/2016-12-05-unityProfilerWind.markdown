@@ -13,7 +13,7 @@ tags:
 ---
 
 
-#### 前言
+## 前言
 在游戏开发过程中遇到刷新界面卡顿等现象，决定学习一下Unity相关的优化工作。首先要做的就是了解Unity相应的性能测试工具以找到性能的瓶颈。依据[U3D官方文档](https://unity3d.com/cn/learn/tutorials/topics/performance-optimization/profiler-window?playlist=44069)和google上的一些文档，熟悉相关的性能测试工具。
 
 ## Profiler window
