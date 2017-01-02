@@ -39,6 +39,8 @@ c#提供一个统一类型系统，在c#语言中，所有的数据类型都继�
 |布尔值、Char|数组|
 |自定义类型：struct、enum|Class|
 |Data等 | Delegate|
+
+
 `String`类型作为引用类型，存储在托管堆中，不过其具有一些非常规的使用方式，将在以后介绍。 
   
 同时，关于`String`和`string`大小写的区别，可以参考[stackOverFlow的这篇文章](http://stackoverflow.com/questions/7074/what-is-the-difference-between-string-and-string-in-c/215422#215422)。
@@ -90,7 +92,7 @@ object o = i; //boxing
 ~~~
 
 装箱在GC堆中创建新的__Object__,然后将值类型的值复制到这个Object中。如下图所示：
-![boxingTexture]("/img/CS/boxing.gif")
+![boxingTexture](/img/CS/boxing.gif)
 
 拆箱与装箱相反，是引用类型转换为值类型的过程。
 
@@ -100,7 +102,7 @@ object o = i; //boxing
 int j = (int)o; //unboxing
 ~~~
 拆箱操作首先判断__Object__是否可以转换为指定的值类型，然后将值复制到新的值类型变量当中。
-![boxingTexture]("/img/CS/unboxing.gif")
+![boxingTexture](/img/CS/unboxing.gif)
 
 在理解了装箱和拆箱的相关概念之后，就可以理解什么是箱子了，同样参考自[*梦里花落知多少关于装箱拆箱的博客*](http://www.cnblogs.com/anding/p/5236739.html)，箱子即是一个存放了值类型字段的引用对象实例，并存储在托管堆中。所以*__只有值类型才有拆箱和装箱这两种状态，引用类型一直都在箱子中__*。
 
@@ -109,6 +111,6 @@ int j = (int)o; //unboxing
 而关于如何优化游戏中的GC等问题，以后会专门花时间写一篇博客。
 
 
-##总结
+## 总结
 介绍了在c#中值类型和引用类型的相关概念，和两者之间转换时发生的装箱与拆箱操作，通过减少装箱操作可以达到优化相关游戏性能的目的。
 
