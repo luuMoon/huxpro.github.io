@@ -35,10 +35,10 @@ c#提供一个统一类型系统，在c#语言中，所有的数据类型都继�
 
 |值类型 | 引用类型 | 
 |:-------:| :------:|  
-| 所有数值类型| *String*
-|布尔值、Char|数组
-|自定义类型：struct、enum|Class
-|Data等 | Delegate
+| 所有数值类型| *String*|
+|布尔值、Char|数组|
+|自定义类型：struct、enum|Class|
+|Data等 | Delegate|
 `String`类型作为引用类型，存储在托管堆中，不过其具有一些非常规的使用方式，将在以后介绍。 
   
 同时，关于`String`和`string`大小写的区别，可以参考[stackOverFlow的这篇文章](http://stackoverflow.com/questions/7074/what-is-the-difference-between-string-and-string-in-c/215422#215422)。
@@ -78,7 +78,7 @@ public class refVSout : MonoBehaviour
 
 }
 ~~~
-添加__*ref*__和__*out*__关键字可以按引用传递参数。其不同是，ref参数物体需要在传递前初始化，而out为传递后进行初始化（且不允许在离开函数时未初始化）。具体区别可以参考[StackOverFlow](http://stackoverflow.com/questions/388464/whats-the-difference-between-the-ref-and-out-keywords)。
+添加__*ref和out*__关键字可以按引用传递参数。其不同是，ref参数物体需要在传递前初始化，而out为传递后进行初始化（且不允许在离开函数时未初始化）。具体区别可以参考[StackOverFlow](http://stackoverflow.com/questions/388464/whats-the-difference-between-the-ref-and-out-keywords)。
 
 ##装箱与拆箱
 关于为什么需要装箱与拆箱，在[StackOverFlow上有一个不错的解释](http://stackoverflow.com/questions/2111857/why-do-we-need-boxing-and-unboxing-in-c)。
@@ -90,7 +90,7 @@ object o = i; //boxing
 ~~~
 
 装箱在GC堆中创建新的__Object__,然后将值类型的值复制到这个Object中。如下图所示：
-![boxingTexture]("./img/CS/boxing.gif")
+![boxingTexture]("/img/CS/boxing.gif")
 
 拆箱与装箱相反，是引用类型转换为值类型的过程。
 
@@ -100,13 +100,14 @@ object o = i; //boxing
 int j = (int)o; //unboxing
 ~~~
 拆箱操作首先判断__Object__是否可以转换为指定的值类型，然后将值复制到新的值类型变量当中。
-![boxingTexture]("./img/CS/unboxing.gif")
+![boxingTexture]("/img/CS/unboxing.gif")
 
 在理解了装箱和拆箱的相关概念之后，就可以理解什么是箱子了，同样参考自[*梦里花落知多少关于装箱拆箱的博客*](http://www.cnblogs.com/anding/p/5236739.html)，箱子即是一个存放了值类型字段的引用对象实例，并存储在托管堆中。所以*__只有值类型才有拆箱和装箱这两种状态，引用类型一直都在箱子中__*。
 
 装箱的操作由于需要在托管堆中申请内存，所以十分消耗性能，频繁的装箱也会照成托管堆中内存被分为许多小块，所以需要避免频繁装箱，尤其是隐式装箱。如`int x = 100; ArrayList a = new ArrayList(3); a.Add(x);`，由于Add的方法定义为`public virtual int Add(object value)`，在将x转换为object时发生装箱问题。
 
 而关于如何优化游戏中的GC等问题，以后会专门花时间写一篇博客。
+
 
 ##总结
 介绍了在c#中值类型和引用类型的相关概念，和两者之间转换时发生的装箱与拆箱操作，通过减少装箱操作可以达到优化相关游戏性能的目的。
