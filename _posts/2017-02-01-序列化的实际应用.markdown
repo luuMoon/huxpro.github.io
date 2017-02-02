@@ -21,7 +21,7 @@ tags:
 * 存储数据
 * RPC等         
 
-下面介绍在__c#__和__U3D__中如何使用序列化。
+下面介绍在c#和U3D中如何使用序列化。
 
 ## 在C#中使用序列化
 #### Stream
@@ -90,7 +90,7 @@ protected MyObject(SerializationInfo info,StreamingContext context)
 ```
 参考自[MSDN序列化文档](https://msdn.microsoft.com/en-us/library/ty01x675(v=vs.110).aspx)。序列化时，通过`GetObjectData`自定义填充SerializationInfo;反序列化时，通过特殊构造函数读取SerializationInfo中数据。具体序列化步骤参考[此处](https://msdn.microsoft.com/en-us/library/tyf8zbfk(v=vs.110).aspx)。
 
-##序列化在U3D中的实际应用
+## 序列化在U3D中的实际应用
 相较于c#中序列化实现，在U3D中序列化有一些新的特性与使用方式。参考自[官方手册](https://docs.unity3d.com/Manual/script-Serialization.html)，U3D中序列化同样是用来从硬盘等持久化数据中加载Asset、AssetBundle等资源。以下为几种常见用途：
 
 * 脚本中存储数据
@@ -200,7 +200,7 @@ public class ScriptableDecoupleTest : MonoBehaviour
 }
 ```
 
-当将脚本附加到__GameObject__上时，结果：当city2的name改变时，city1的name也发生改变，表明： city1和city2指向同一物体，为reference。
+当将脚本附加到__*GameObject*__上时，结果：当city2的name改变时，city1的name也发生改变，表明： city1和city2指向同一物体，为reference。
 
 除此之外，使用__*ScriptableObject*__还可以解决多态和循环调用的bug，详情看[这篇博客](https://sometimesicode.wordpress.com/2015/10/22/unity-serialization-part-3-scriptable-objects/)。
 
