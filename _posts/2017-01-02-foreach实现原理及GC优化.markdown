@@ -44,11 +44,10 @@ public List<int> testList = new List<int>();
 
 通过分别使用for和foreach进行循环操作，会发现，在使用foreach进行循环迭代时，会在每帧产生40B的GC Alloc。产生这种现象的原因是什么？如何进行优化？下文将详细讲解。
 
-<font color=#008B8B size = 2>        *在[这里](http://stackoverflow.com/questions/18718399/every-iteration-of-every-foreach-loop-generated-24-bytes-of-garbage-memory)有相关问题的相关讨论。*</font>
+在[这里](http://stackoverflow.com/questions/18718399/every-iteration-of-every-foreach-loop-generated-24-bytes-of-garbage-memory)有相关问题的相关讨论。
 
 ## Foreach实现原理
-*Foreach*是c#的语法糖，通过封装迭代过程的实现细节，可以更加便捷的实现迭代。以下，参考自[coderbetter](http://codebetter.com/davidhayden/2005/03/08/implementing-ienumerable-and-ienumerator-on-your-custom-objects/)一篇文章来探索foreach实现细节。   
-<font size = 2 color = #009B8B> 使用U3D实现时进行了相关代码微调</font>
+*Foreach*是c#的语法糖，通过封装迭代过程的实现细节，可以更加便捷的实现迭代。以下，参考自[coderbetter](http://codebetter.com/davidhayden/2005/03/08/implementing-ienumerable-and-ienumerator-on-your-custom-objects/)一篇文章来探索foreach实现细节。
 
 ~~~cs
 foreach(Student student in myClass)
@@ -122,7 +121,7 @@ using(var enumerator = fibonacci.GetEnumerator())
 }
 ~~~
 
-而在老版本的mono编译器中，将__*using*__中的表达式，例如`using (ResourceType resource = expression) `转换为：
+而在老版本的mono编译器中，将*__using__*中的表达式，例如`using (ResourceType resource = expression) `转换为：
 
 ~~~cs
 {
@@ -135,10 +134,10 @@ using(var enumerator = fibonacci.GetEnumerator())
 	}
 }
 ~~~
-而将resource（值类型）转换为__*IDisposable*__接口类型时，会发生装箱操作，这也就是引起GC的原因。
+而将resource（值类型）转换为*__IDisposable__*接口类型时，会发生装箱操作，这也就是引起GC的原因。
 
 #### c#编译器优化
-在新版本的编译器中，会判断resource类型，若为值类型，则直接`finally{resource.Dispose();}`避免装箱操作。关于具体的__*using相关转换*__,可参考[这篇博文](https://ericlippert.com/2011/03/14/to-box-or-not-to-box/)。
+在新版本的编译器中，会判断resource类型，若为值类型，则直接`finally{resource.Dispose();}`避免装箱操作。关于具体的*__using相关转换__*,可参考[这篇博文](https://ericlippert.com/2011/03/14/to-box-or-not-to-box/)。
 
 ##StartCoroutine
 U3D中`StartCoroutine`也利用了迭代器的原理，yield关键字使程序在确定时间点停止给定时间-->保存状态-->一定时间后继续运行。使用协程可以实现延迟操作。在如_pathfinding_等操作，分为多帧运行可以缓解运行压力。
@@ -180,7 +179,7 @@ public bool MoveNext()
 在U3D中，`StartCoroutine`吸收IENumerator和yield核心思想，实现延迟操作。在stackoverflow上，有[一篇关于实现原理的分析](http://stackoverflow.com/questions/12932306/how-does-startcoroutine-yield-return-pattern-really-work-in-unity)。
 
 
-##总结
+## 总结
 从`Foreach`出发，分析实现原理引出IENumerator实现和yield的原理。最后，在给出关于`StartCoroutine`实现原理的一篇文章。
 
 
