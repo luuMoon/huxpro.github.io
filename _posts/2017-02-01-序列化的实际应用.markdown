@@ -28,8 +28,8 @@ tags:
 #### Stream
 首先了解一下流（stream）的概念。参考自[*__StackOverflow__*](http://stackoverflow.com/questions/1216380/what-is-a-stream),stream代表按顺序排列的物体集合,流支持不同的权限：读、写和seek等。通过抽象出*__流__*的概念，可以更好的描述文件、IO、socket等，可以更方便的进行读写操作。根据存放位置又可分为MemoryStream、FileStream等。
 
-#### 基本使用
-[最简单的使用序列化的方法](https://msdn.microsoft.com/en-us/library/4abbf6k0(v=vs.110).aspx)就是在类上加入__Serializable__属性，然后通过不同的Formatter进行序列化或反序列化。
+### 基本使用
+[最简单的使用序列化的方法](https://msdn.microsoft.com/en-us/library/4abbf6k0(v=vs.110).aspx)就是在类上加入*Serializable*属性，然后通过不同的Formatter进行序列化或反序列化。
 
 ```cs
 [Serializable]  
@@ -147,7 +147,7 @@ void Update () {
 * 引用耦合(decoupled references) : 如`testClass[] tClass`会序列化为多个物体，而非引用
 * 循环调用，因为在序列化时不允许为`null`，Unity内部为阻止无限循环声明，限制最多调用7层
 
-解决方案是使用__*ScriptableObject*__ ： 继承自ScriptableObject的类无需附加到GameObject上，更利于那些只用于存储数据的类。
+解决方案是使用*__ScriptableObject__*： 继承自ScriptableObject的类无需附加到GameObject上，更利于那些只用于存储数据的类。
 
 先看一下*ScriptableObject*的基本使用：
 
@@ -201,9 +201,9 @@ public class ScriptableDecoupleTest : MonoBehaviour
 }
 ```
 
-当将脚本附加到__*GameObject*__上时，结果：当city2的name改变时，city1的name也发生改变，表明： city1和city2指向同一物体，为reference。
+当将脚本附加到*GameObject*上时，结果：当city2的name改变时，city1的name也发生改变，表明： city1和city2指向同一物体，为reference。
 
-除此之外，使用__*ScriptableObject*__还可以解决多态和循环调用的bug，详情看[这篇博客](https://sometimesicode.wordpress.com/2015/10/22/unity-serialization-part-3-scriptable-objects/)。
+除此之外，使用*ScriptableObject*还可以解决多态和循环调用的bug，详情看[这篇博客](https://sometimesicode.wordpress.com/2015/10/22/unity-serialization-part-3-scriptable-objects/)。
 
 ## 总结
-序列化在存储数据方面是一个核心概念，本篇讲述了序列化的核心思想和在c#、U3D中的具体使用流程，以及__ScriptableObject__使用方法。
+序列化在存储数据方面是一个核心概念，本篇讲述了序列化的核心思想和在c#、U3D中的具体使用流程，以及*ScriptableObject*使用方法。
