@@ -1,10 +1,10 @@
----
+ ---
 layout:     post
 title:      "Protobuf学习及应用"
 subtitle:   "protobuf原理和游戏中的实际应用"
 date:       2017-02-01
 author:     "Luffy"
-header-img: "img/BG/background1.jpg"
+header-img: "./img/BG/topbackground.jpg"
 catalog: true
 tags:
     - U3D
@@ -14,3 +14,124 @@ tags:
 
 ---
 
+## 前言
+在之前的[博客](https://luumoon.github.io/2017/02/01/序列化的实际应用/)中提到了关于序列化的相关知识。考虑一下这种情况：策划配置好相应的游戏数据表格，想要将excel表格转化为程序中可以使用的数据，那么你会采用什么样的策略呢？xml或是二进制？或是本文介绍的Protobuf？
+## Protobuf
+protobuf提供一种十分高效、灵活的序列化结构化数据的方式，可以更加容易生成源码，来更加高效的读写结构化数据。具体可查看Protobuf的[开发者文档](https://developers.google.com/protocol-buffers/docs/overview)
+#### 与其他格式的性能比对
+那么，相对于其他可以序列化结构数据的方式，如xml，protobuf具有哪些优势呢？
+相较于xml，protobuf的优势可以总结为:  
+  
+* 更容易code
+* 小3～10倍
+* 快20～100倍
+* 更少的歧义
+* 生成的数据更易于在程序中使用
+
+而关于不同的策略的详细性能数据对比可以参考[此开源项目](https://github.com/eishay/jvm-serializers/wiki),通过对比采用不同方式序列化/反序列化所占用的空间和时间，来比对每种方式的性能。
+结论__*protobuf*__在U3D实际游戏开发中有较好的性能。
+#### Protobuf格式
+在下载Protobuf之后，文件夹*example*为测试用例，其中观察*addressbook.proto*可以了解protobuf格式。
+
+```cs  
+message Person {
+  required string name = 1;
+  required int32 id = 2;        // Unique ID number for this person.
+  optional string email = 3;
+
+  enum PhoneType {
+    MOBILE = 0;
+    HOME = 1;
+    WORK = 2;
+  }
+
+  message PhoneNumber {
+    required string number = 1;
+    optional PhoneType type = 2 [default = HOME];
+  }
+
+  repeated PhoneNumber phone = 4;
+}
+```
+
+Person中包含有`name`,`id`,`email`和`PhoneNumber`（其中phoneNumber为嵌套消息）。
+`required`表示字段为必要，`optional`可选。
+
+#### Protobuf 编码格式
+[官网Encoding说明](https://developers.google.com/protocol-buffers/docs/encoding)。Protobuf的高效部分源于起编码格式。
+考虑以下信息：
+
+```cs
+message Test1{
+	required int32 a = 1;
+	}
+```
+
+在应用当中，传递一个Test1结构，其中a设为150，那么其对应的编码信息为`08 96 01`。是不是空间占用率很小？接下来解释一下原理。
+字节的首位代表是否有后续字节，即`08`首字节为0，则无后续字节，`96`首字节为1，则与后续字节作为一个整体，即`96 01`。 
+
+首先，Protobuf的类型可以用下表来说明：
+
+|类型 | 含义 | 应用 | 
+-----| ------|----| 
+|0|Varint|int32, int64, uint32...|
+|1|64-bit|fixed64, sfixed64, double|
+|2|Length-delimited|string, bytes, embedded messages...|
+
+等等...，
+
+ 类型有字节后三位表示。考虑`08`字节，首字节去掉后为：`000 1000`,后三位为0，表示为Variant类型，而将字节*右移*三位表示tag，即为1（所以前16标示位表示常用字段，可以只用1个字节表示)。而接下来的字节`96 01`，去除最高为后，可以表示为`	000 0001 + 001 0110`（反转后),即`10010110` = 150。
+ 
+#### Protobuf的使用
+可以查看[官方教程](https://developers.google.com/protocol-buffers/docs/tutorials),并结合Protobuf中的相应例子来学习Protobuf的具体使用。首先，可以参考ReadMe，按步骤安装Protobuf。在example中含有相应例子。前文中已经描述了proto文件如何定义及编码规则，这里就不细讲。
+
+可以通过指令：`protoc -I=$SRC_DIR --cpp_out=$DST_DIR $SRC_DIR/addressbook.proto`生成protobuf所需要的相应源文件，其中`-cpp_out`表示为c++类。例如其中的`id`字段，生成为：
+
+```cs
+inline bool has_id() const;
+inline void clear_id();
+inline int32_t id() const;
+inline void set_id(int32_t value);
+```
+完整代码可查看例子中生成的c++文件。
+
+例子中包含有`add_person.cc`和`list_people.cc`两个程序，分别为添加列出两种protobuf文件操作的测试用例。利用所生成的c++类中如`set_email()`等函数，进行赋值，并将其序列化转存到指定文件中；listpeople则是读取并显示相应文件的protobuf信息。
+
+#### 游戏中的具体应用
+在U3D中由于使用的是c#语言，所以可以使用`protobuf-net`,[github地址点这里](https://github.com/mgravell/protobuf-net)。可以查看其中的ReadMe来查看具体使用。
+
+```cs
+ [global::System.Serializable, global::ProtoBuf.ProtoContract(Name=@"EXPLEVEL")]
+  public partial class EXPLEVEL : global::ProtoBuf.IExtensible
+  {
+    public EXPLEVEL() {}
+  
+    private uint _Difficulty = (uint)0;
+    [global::ProtoBuf.ProtoMember(1, IsRequired = false, Name=@"Difficulty", DataFormat = global::ProtoBuf.DataFormat.TwosComplement)]
+    [global::System.ComponentModel.DefaultValue((uint)0)]
+    public uint Difficulty
+    {
+      get { return _Difficulty; }
+      set { _Difficulty = value; }
+    }
+    
+    private string _Level = "";
+    [global::ProtoBuf.ProtoMember(2, IsRequired = false, Name=@"Level", DataFormat = global::ProtoBuf.DataFormat.Default)]
+    [global::System.ComponentModel.DefaultValue("")]
+    public string Level
+    {
+      get { return _Level; }
+      set { _Level = value; }
+    }
+  }
+```
+
+可观察到有两个字段`Difficulty`和`Level`。可以通过函数`Serialize`和`Deserialize`来序列化和反序列化，并最终实现数据的传递与应用。
+
+## 总结
+通常在实际应用中：
+
+* 首先定义proto文件，通过protobuf-net生成程序中可用的代码；
+* 然后通过转表工具（利用转表工具[Excel Reader](http://exceldatareader.codeplex.com)等将策划表格转为protobuf格式）。
+* 可以将proto序列化的二进制文件，通过id-proto键值对形式存储在sqlite中（待续）。
+* 通过assetbundle（待续）或其他形式更新／传递数据。
