@@ -72,7 +72,7 @@ HAVING group_filter;
 
 教程中提供了一个可以用于测试的数据库。如下图所示：
 
-![sqlite测试数据库](/img/sqlite/sql3.png)
+![sqlite测试数据库](/img/sqlite/sql3.jpg)
 
 对于数据库的可视化工具，我选择的是开源的[sqlitebrowser](https://github.com/sqlitebrowser/sqlitebrowser/),具有跨平台等特性。可以更方便的查看数据库中的数据，也可以测试相应的查询语句和索引。
 
