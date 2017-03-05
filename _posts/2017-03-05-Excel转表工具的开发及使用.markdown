@@ -1,0 +1,120 @@
+---
+layout:     post
+title:      "本地化工具的开发及流程"
+subtitle:   "将策划表转为protobuf／csv 并插入sqlite"
+date:       2017-03-05
+author:     "Luffy"
+header-img: "img/BG/background1.jpg"
+catalog: true
+tags:
+    - c#
+    - Excel
+    - 批处理
+    - 本地化
+
+---
+
+
+## 前言
+项目需要发行海外版本，就涉及到将项目中的中文转换为对应的外文。所需要完成的工作主要分为两部分：1.`策划配表`；2.`界面UI`。 主要实现步骤分为：将需要翻译的文字转换为Excel表格；翻译好后，转换为程序可用的数据。本篇主要介绍一下在转换过程中的主要思路和所使用的工具。
+
+## 工具介绍
+为提高转换的效率，编写了一些bat文件进行控制，使操作更加自动化。主要使用了`commandLine`，对于Excel的转换，主要使用了`excelReader`。
+#### 批处理与commandLine
+使用编写好的批处理文件，可以更好的控制工程，同时也可以使得工作流更加自动化。[CommandLIne](http://commandline.codeplex.com)为CLR应用程序提供更加方便的与命令行交互的库。使用commandLine可以提高命令行的复用率，同时也可以更快的定位命令行的错误位置。
+首先定义命令行格式：
+
+```cs
+class Options {
+  [Option('r', "read", Required = true,
+    HelpText = "Input file to be processed.")]
+  public string InputFile { get; set; }
+    
+  [Option('v', "verbose", DefaultValue = true,
+    HelpText = "Prints all messages to standard output.")]
+  public bool Verbose { get; set; }
+
+}
+
+```
+
+以上定义了命令行的格式为: -r(--read) 和 -v(--verbose)。可以定义bat文件格式为`-r C:/read.txt -v c:/output.txt"`。 程序中可以通过以下这种形式来识别命令行是否正确，并作出相应操作：
+
+```cs
+static void Main(string[] args) {
+  var options = new Options();
+  if (CommandLine.Parser.Default.ParseArguments(args, options)) {
+    // Values are available here
+    if (options.Verbose) Console.WriteLine("Filename: {0}", options.InputFile);
+  }
+}
+```
+
+在commandLine的Github上，分享了[commandLine使用的最佳实践](https://github.com/gsscoder/commandline/wiki/Best-Practices),可以使用此流程完成对命令行的格式判断并完成相应操作。
+
+#### ExcelReader
+使用ExcelReader可以更方便的使用c#读取Excel文件。[ExcelReader的github地址](https://github.com/ExcelDataReader/ExcelDataReader)。在下载好并加入到项目之后，使用方式如下：
+
+```cs
+FileStream stream = File.Open(filePath, FileMode.Open, FileAccess.Read);
+
+//Choose one of either 1 or 2
+//1. Reading from a binary Excel file ('97-2003 format; *.xls)
+IExcelDataReader excelReader = ExcelReaderFactory.CreateBinaryReader(stream);
+
+//2. Reading from a OpenXml Excel file (2007 format; *.xlsx)
+IExcelDataReader excelReader = ExcelReaderFactory.CreateOpenXmlReader(stream);
+
+//Choose one of either 3, 4, or 5
+//3. DataSet - The result of each spreadsheet will be created in the result.Tables
+DataSet result = excelReader.AsDataSet();
+
+//4. DataSet - Create column names from first row
+excelReader.IsFirstRowAsColumnNames = true;
+DataSet result = excelReader.AsDataSet();
+
+//5. Data Reader methods
+while (excelReader.Read())
+{
+    //excelReader.GetInt32(0);
+}
+
+//6. Free resources (IExcelDataReader is IDisposable)
+excelReader.Close();
+```
+
+读取相应的Excel文件，并将其转为DataSet，然后就可以使用Dataset,DataRow等读取相应数据，并对其进行相应操作。
+
+## 本地化思路
+主要分为两部分：策划表和UI界面。
+#### 配表文件本地化
+大概步骤：
+
+* 通过现有的`中文翻译表`和中文表得出`新增翻译表`
+* 将`新增翻译表`和原有的`中文翻译表`合并，得出需要翻译的总表
+* 翻译好后，将相应的数据转换到csv,protobuf等程序可用的数据，并上传svn
+
+可以编写相应步骤的批处理命令，并通过commandLine识别并完成相应操作。对excel的读取使用ExcelReader。在具体的实现细节方面，会使用到一些具体技术如：
+
+* 使用`反射`来识别相应proto类，并转换Excel表中对应行的数据
+* 使用`正则`来判断对应的数据是否是中文
+* 在插入到sqlite或生成相应的json/csv文件时，使用不同的插入方式
+
+等等，以上这些使用细节，如先将protobuf-net生成的c#文件加入到程序，利用c#的反射将Excel对应行数据转换为相应的程序数据。这是因为在配表中有一些如描述文件，程序里是不使用的，没必要翻译。而使用正则等判断相应位置是否为中文，可以简化最终的翻译Excel表。 其他的一些具体细节如：因为数据会包含有Collection等复杂结构，会采取不同的处理方式等，这里就不一一描述了。
+
+#### UI界面本地化
+
+流程大致相似，不同点在于： 配表的信息加入到sqlite后程序就可以直接使用；而UI界面的本地化为了方便处理及对比，采用了一些新的方式。
+
+正常读取流程：
+
+* 在游戏开始时，通过StringManager中的`LoadStringTabe`加载字符串对应Dictionary
+* 读取对应Assetbundle中的Asset，转换为相应的TextAsset
+* 判断(可以添加宏如：UNITY_ABROAD)是否为海外版本，若为中文版本则直接使用LitJson转为相应StringDictionary
+* 海外版本中，会将`翻译表`存储为 中文-外文 形式，读取相应value值，若翻译表中存在相应翻译，将翻译文字存入`StringDictionary`
+
+## 小结及扩展
+
+主要介绍了在进行本地化工作时的主要工作流程和相应的使用工具。同时，也有一些扩展工作，如在这星期做过的：读取csv,json和protobuf的byte文件，对比在sqlite中相应的文件，比较是否存在差异，保证策划上传无误等。
+
+
