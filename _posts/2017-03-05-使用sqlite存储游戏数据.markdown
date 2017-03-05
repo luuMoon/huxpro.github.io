@@ -1,0 +1,151 @@
+---
+layout:     post
+title:      "使用sqlite存储游戏数据"
+subtitle:   "在U3D中使用sqlite存储protobuf数据"
+date:       2016-03-05
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+    - Unity3D
+    - 性能优化
+    - 数据库
+    - protobuf
+    - 数据传递
+
+---
+
+## 前言
+在介绍[实现本地化工具开发](https://luumoon.github.io/2017/03/05/Excel转表工具的开发及使用/)时，提及到将数据存入sqlite。在老项目中，直接传递protobuf的二进制文件。大致流程：
+
+* 加载Assetbundle并转换为`TextAsset`文件
+* `ProtoBuf.Serializer.NonGeneric.Deserialize`反序列化为对应类
+* 将数据加载为Dictionary<int,数据>，并存储
+* 使用时，查找Dictionary，找到相应数据或返回null
+
+这样做的缺点很明显：在游戏开始时加载大量数据，不仅费时，而且占用内存。
+
+所以，在新项目当中，使用sqlite存储数据，格式为`表名-proto二进制数据`。
+
+## sqlite优点
+sqlite是一个高层面，稳定，可跨平台的轻型数据库。对比单纯使用文件系统来管理数据，sqlite有许多优点，参考自[sqlite官网](https://www.sqlite.org/aff_short.html)，总结如下：
+
+* 更好的性能
+* 更好的便携性
+* 便携性
+* 健壮性
+* 易于查看
+
+具体的相关优点及特性可以[看这里](https://www.sqlite.org/appfileformat.html)。
+
+## sqlite基本使用
+
+可以通过[SQLite Tutorial](http://www.sqlitetutorial.net)网站学习基础的sqlite基本语法和相关操作教程。
+
+首先可以从最简单的选择操作开始，如下所示：
+
+```sql
+SELECT DISTINCT column_list
+FROM   table_list
+JOIN   table ON join_condition
+WHERE  row_filter
+ORDER BY column
+LIMIT count OFFSET offset
+GROUP BY column
+HAVING group_filter;
+```
+
+其中具体的语句含义及用法可以查看[这里](http://www.sqlitetutorial.net/sqlite-select/),大概含义如下：
+
+* ORDER BY   ： 对选择结果排序
+* DISTINCT   ： 查询结果去重
+* WHERE      ： 对选择结果筛选
+* LIMIT      ： 限制选择结果数量
+* INNER JOIN ： 使用内连，多表联合查询
+
+对表的更新，也会使用到：`insert`,`update`和`delete`等语句。
+
+同时，也要注意sqlite与其他关系型数据库的差异，比如：sqlite并不提供`RIGHT JOIN`,所以在使用时，可以通过[LEFT JOIN来模拟RIGHT JOIN](http://www.sqlitetutorial.net/sqlite-full-outer-join/)。
+
+
+而对于sqlite的优化，如采用[index](http://www.sqlitetutorial.net/sqlite-index/)。
+
+教程中提供了一个可以用于测试的数据库。如下图所示：
+
+![sqlite测试数据库](/img/sqlite/sql3.png)
+
+对于数据库的可视化工具，我选择的是开源的[sqlitebrowser](https://github.com/sqlitebrowser/sqlitebrowser/),具有跨平台等特性。可以更方便的查看数据库中的数据，也可以测试相应的查询语句和索引。
+
+## 游戏中的具体使用
+
+在Unity中使用sqlite时，由于要在不同的平台上(android/IOS),需要有一些库函数，如sqlite3等，可以参考官网，或者下载如SQLiter等插件，来一次性下载依赖库文件。
+
+对于在U3D中操作sqlite的相关操作，主要参考自[Tigran](https://github.com/sqlitebrowser/sqlitebrowser/)的博客。
+
+首先是数据库的建立与连接：
+
+```cs
+//数据库建立
+SQLiteConnection.CreateFile("MyDatabase.sqlite");
+//数据库连接
+SQLiteConnection m_dbConnection;
+m_dbConnection = new SQLiteConnection("Data Source=MyDatabase.sqlite;Version=3;");
+m_dbConnection.Open();
+```
+
+建表：
+
+```cs
+string sql = "create table highscores (name varchar(20), score int)";
+SQLiteCommand command = new SQLiteCommand(sql, m_dbConnection);
+command.ExecuteNonQuery();
+```
+
+插入表格：
+
+```cs
+string sql = "insert into highscores (name, score) values ('Me', 3000)";
+SQLiteCommand command = new SQLiteCommand(sql, m_dbConnection);
+command.ExecuteNonQuery();
+```
+
+对于sqlite的读取格式方面，可以参考[此网站](https://www.devart.com/dotconnect/sqlite/docs/Devart.Data.SQLite~Devart.Data.SQLite.SQLiteCommand.html)。
+
+```cs
+public void ReadMyData(string myConnString)
+{
+  string mySelectQuery = "SELECT DeptNo, DName FROM Dept";
+  SQLiteConnection sqConnection = new SQLiteConnection(myConnString);
+  SQLiteCommand sqCommand = new SQLiteCommand(mySelectQuery,sqConnection);
+  sqConnection.Open();
+  SQLiteDataReader sqReader = sqCommand.ExecuteReader();
+  try
+  {
+    while (sqReader.Read())
+    {
+      Console.WriteLine(sqReader.GetInt32(0).ToString() + ", " + sqReader.GetString(1));
+    }
+  }
+  finally
+  {
+  // always call Close when done reading.
+  sqReader.Close();
+  // always call Close when done reading.
+  sqConnection.Close();
+  }
+}
+```
+
+不过在使用时，通常使用`using`语句来调用相应的dispose语句。如下：
+
+```cs
+using (var connection = new SqlConnection(...))
+{
+    // use connection here.
+} 
+```
+
+
+## 总结
+
+介绍了基本的sqlite使用基本操作，以及在实际游戏环境中的应用。

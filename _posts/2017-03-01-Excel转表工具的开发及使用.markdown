@@ -2,7 +2,7 @@
 layout:     post
 title:      "本地化工具的开发及流程"
 subtitle:   "将策划表转为protobuf／csv 并插入sqlite"
-date:       2017-03-05
+date:       2017-03-01
 author:     "Luffy"
 header-img: "img/BG/background1.jpg"
 catalog: true
