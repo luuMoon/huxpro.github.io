@@ -1,0 +1,150 @@
+---
+layout:     post
+title:      "U3D封装有限状态机"
+subtitle:   "封装有限状态机提高代码可读性"
+date:       2017-03-18
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+    - Unity3D
+    - FSM
+    - 设计模式
+    - c#
+
+---
+
+# 前言
+最近在做活动模块，设计到大量的tab页切换、按钮状态和显示界面的状态切换。若用最直白的方式实现，即在每个点击事件时，响应相应的处理。这样就会出现大量的`switch case`，降低了代码可读性和系统的复杂度。在[GitHub这个项目](https://github.com/thefuntastic/Unity3d-Finite-State-Machine)中，通过封装FSM来简化程序代码，增加可读性。
+
+# 使用方法
+首先介绍一下使用方法。  
+
+* 包含命名空间： `using MonsterLove.StateMachine;`  
+* 定义转换需要的几个状态。
+
+```cs
+public enum States
+{
+	Init,  
+	Play,
+	Win,
+	Lose
+}
+``` 
+* 创建并初始化`MonoBehaviour`的状态机变量。
+
+
+```cs
+StateMachine<States> fsm;
+fsm = StateMachine<States>.Initialize(this);
+```
+
+通过`Initialize`，利用反射，初始化状态机并为接下来的状态转换完成运算。 下文会对其进行原理介绍。
+
+* 在需要装变状态时： `fsm.ChangeState(States.Init);`
+* 定义状态过程中的具体代码，函数名格式（StateName_Method)。
+
+```cs
+void Init_Enter()
+{
+	Debug.Log("We are now ready");
+}
+
+//Coroutines are supported, simply return IEnumerator
+IEnumerator Play_Enter()
+{
+	Debug.Log("Game Starting in 3");
+	yield return new WaitForSeconds(1);
+    
+    Debug.Log("Game Starting in 2");
+	yield return new WaitForSeconds(1);
+    
+    Debug.Log("Game Starting in 1");
+	yield return new WaitForSeconds(1);
+    
+    Debug.Log("Start");	
+}
+
+void Play_Update()
+{
+	Debug.Log("Game Playing");
+}
+
+void Play_Exit()
+{
+	Debug.Log("Game Over");
+}
+```
+
+
+# 原理
+接下来分析一下使用原理，主要是通过反射预先缓存好MonoBehaviour中的状态脚本。所以，首先从`Initialize`看起。
+
+```cs
+//StateMachine初始化
+public static StateMachine<T> Initialize(MonoBehaviour component)
+		{
+			var engine = component.GetComponent<StateMachineRunner>();
+			if (engine == null) engine = component.gameObject.AddComponent<StateMachineRunner>();
+
+			return engine.Initialize<T>(component);
+		}
+```
+
+首先，确保`StateMachineRunner`脚本被添加；然后进行初始化。
+
+在对StateMachine初始化中，主要的工作就是建立脚本中相应状态Enum的函数对应关系（委托）。 如下为状态对应表的结构，各事件代表了，在转换状态过程中对应的函数事件。
+
+```cs
+\\StateMapping结构
+public class StateMapping
+	{
+		public object state;
+
+		public bool hasEnterRoutine;
+		public Action EnterCall = StateMachineRunner.DoNothing;
+		public Func<IEnumerator> EnterRoutine = StateMachineRunner.DoNothingCoroutine;
+
+		public bool hasExitRoutine;
+		public Action ExitCall = StateMachineRunner.DoNothing;
+		public Func<IEnumerator> ExitRoutine = StateMachineRunner.DoNothingCoroutine;
+
+		public Action Finally = StateMachineRunner.DoNothing;
+		public Action Update = StateMachineRunner.DoNothing;
+		public Action LateUpdate = StateMachineRunner.DoNothing;
+		public Action FixedUpdate = StateMachineRunner.DoNothing;
+		public Action<Collision> OnCollisionEnter = StateMachineRunner.DoNothingCollision;
+
+		public StateMapping(object state)
+		{
+			this.state = state;
+		}
+
+	}
+```
+
+以下为在建立对应StateMapping结构的关键过程：
+
+```cs
+\\获取Enum全部状态
+var values = Enum.GetValues(typeof(T));
+\\建立 状态-结构 对应表
+stateLookup = new Dictionary<object, StateMapping>();
+	for (int i = 0; i < values.Length; i++)
+	{
+		var mapping = new StateMapping((Enum) values.GetValue(i));
+		stateLookup.Add(mapping.state, mapping);
+	}
+\\通过反射，获取脚本中具体的对应状态执行代码，并加入到对应状态的事件当中
+var methods = component.GetType().GetMethods(BindingFlags.Instance | BindingFlags.DeclaredOnly | BindingFlags.Public |
+									  BindingFlags.NonPublic);
+var separator = "_".ToCharArray();
+
+.....
+```
+
+在转换过程中的使用代码`fsm.ChangeState(States.Init);`而在其中的实现，(例如）： 寻找到上个状态的ExitCall事件，如：`Init_Exit`，完成相应StateMapping中的Exit事件，然后运行当前状态的Enter事件（EnterCall），如：Play_Enter,完成状态的转换。
+
+# 小结
+通过封装状态机，方便了相关状态转换的代码编写，提高代码可阅读性和扩展性。  虽然代码量不大，但是代码十分简洁、高效且实用，值得学习！ 具体的代码实现，可以查看开篇的github地址。
