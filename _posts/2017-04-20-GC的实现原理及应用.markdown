@@ -1,0 +1,82 @@
+---
+layout:     post
+title:      "GC的实现原理及应用"
+subtitle:   "c#的垃圾回收原理详解及实际项目应用"
+date:       2017-04-20
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+    - GC
+    - 性能
+    - c#
+
+---
+
+# 前言
+考虑下面一个问题 （引用自[StackOverFlow](http://stackoverflow.com/questions/8840567/garbage-collector-and-circular-reference)）：
+
+```cs
+//A,B recycle reference
+public class A
+{
+	B b;
+	public A(B b)
+	{
+		this.b = b;
+	}
+}
+
+public class B
+{
+     A a;
+     public B() 
+     { 
+     	this.a =  new A(this);
+     }
+}
+```
+
+类A与B互相引用，那么CLR能够正常的进行GC么？ 要回答这个问题，就需要了解GC的运作原理。
+
+# GC原理
+参考自[此篇Blog](http://www.cnblogs.com/springyangwc/archive/2011/06/13/2080149.html)。
+GC,即*garbage collection*，是CLR提供的一种提供自动内存管理服务的机制。有了GC之后，可以不必手动管理内存的释放（参考c++中delete)，减少内存泄漏等问题。更详细的解释和GC的优缺点可查看[Wiki相关网页](https://en.wikipedia.org/wiki/Garbage_collection_(computer_science))。
+
+实现GC有许多算法(*Reference Counting，Mark Sweep*等)。c#所采取的标记压缩法(Mark-Compact),基本原理是：以应用程序的root为基础，遍历所有托管物体，标记能不能被搜索到的物体(__Mark__)并清除；然后对内存进行压缩(Compact)。如下图所示：
+
+![GC示意图](/img/CS/gcCollection.png)  
+
+关于GC root，可参考自[这篇文章](https://www.simple-talk.com/dotnet/.net-framework/understanding-garbage-collection-in-.net/) 。 大体可分为以下几类：
+
+* 当前运行方法中的局部变量
+* 静态变量
+* 交互到COM+中的托管物体
+* 物体含有finalizer
+
+这也解释了，若忘记解绑static事件，则会发生内存泄漏。
+
+.Net的GC采用了分代算法，这是由于对全部内存进行一次完整GC花费太过昂贵，且新创建的物体通常生命周期较短。使用方法： ` GC.Collect(int n);` 
+
+同时，C# 也提供了`using`语法糖（在Finalize中实现Dispose），并且在上面提供的博客地址和MSDN中，也有相关的GC使用最佳实践等。
+
+那么会到开篇的问题，CLR的GC是否能正确处理循环引用？  答案是*能*。  这是因为CLR采取引用标记的算法，从root出发，由于循环引用的两个类并没有被标记（假设root中没有指向其中任一物体），则同时被清除。  `若是采用引用计数法，则无法处理此类问题`。
+
+# 弱引用
+在.Net 4.0中，新增了弱引用类型，即当一个物体离开作用域或者被置为`null`（即可以被GC回收）时，若弱引用物体被引用，则可以重新取回该物体。 这样会有效避免创建物体所造成的性能损失。 使用方法也较为简单 
+
+`WeakReference w = new WeakReference(MyHugeObject);`  
+
+由于Unity目前并不支持.Net 4.0 , 若想要进一步了解详情，可查看[这一篇文章](http://tipsandtricks.runicsoft.com/CSharp/WeakReferences.html)。
+
+# 具体应用及小结
+
+了解了相关GC的原理，可以在对项目中优化堆内存，减少内存泄漏(c# 同样会出现)等方面有所帮助。   
+
+关于显示调用`GC.Collect()`，目前看来是不太必要。 原来在Unity切换场景是手动调用，但是在进行`UWA检测`时发现，切换场景是GC发生了2次。  通过查看Profiler时发现，若使用异步加载场景API，则会自动调用一次GC，造成GC调用重复。  
+
+关于GC的优化  --如使用`对象池`等方法，以后会开出几篇专门研究。
+
+
+～周末快乐～
+ 
