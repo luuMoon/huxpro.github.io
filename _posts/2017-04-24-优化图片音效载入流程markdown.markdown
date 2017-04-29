@@ -18,7 +18,7 @@ tags:
 最近在做项目的相关优化工作，首先是针对资源的格式。例如纹理在不同平台下的格式选择和对纹理大小的控制。还有不同音频的格式和加载方式。 若手动对其进行一一设置则太过于麻烦，所以本篇介绍一下相关资源格式的选择策略和unty平台下，资源加载的hook脚本。
 
 # 格式选择
-资源分为学多种类，这里主要针对纹理和音频进行举例讲解。
+资源分为很多种类，这里主要针对纹理和音频进行举例讲解。
 
 ## 图片格式
 根据Unity3D[官方文档](https://docs.unity3d.com/Manual/class-TextureImporter.html),对于纹理格式的选项有许多，这些选项决定了图片是如何导入到项目当中的。 这里主要关心这几点：
@@ -102,6 +102,9 @@ LoadType为运行时加载音频的方式：
             textureFormat = hasAlpha ? TextureImporterFormat.RGBA16 : TextureImporterFormat.ETC_RGB4;
             textureImporter.SetPlatformTextureSettings("Android", 1024, textureFormat);
             textureImporter.SetPlatformTextureSettings("FlashPlayer", 1024, TextureImporterFormat.AutomaticCompressed);
+
+           ...
+       }
 ```
 
 以上只是举了一个例子，真实项目中，会根据`资源目录`,`目标平台`等来设置资源格式。  
