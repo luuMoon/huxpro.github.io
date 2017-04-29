@@ -1,0 +1,112 @@
+---
+layout:     post
+title:      "优化图片音效载入流程"
+subtitle:   "编写hook程序统一处理资源载入"
+date:       2017-04-25
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+    - 技术支持
+    - 性能优化
+    - U3D
+    - 工具类
+
+---
+
+# 前言
+最近在做项目的相关优化工作，首先是针对资源的格式。例如纹理在不同平台下的格式选择和对纹理大小的控制。还有不同音频的格式和加载方式。 若手动对其进行一一设置则太过于麻烦，所以本篇介绍一下相关资源格式的选择策略和unty平台下，资源加载的hook脚本。
+
+# 格式选择
+资源分为学多种类，这里主要针对纹理和音频进行举例讲解。
+
+## 图片格式
+根据Unity3D[官方文档](https://docs.unity3d.com/Manual/class-TextureImporter.html),对于纹理格式的选项有许多，这些选项决定了图片是如何导入到项目当中的。 这里主要关心这几点：
+
+* Read/Write Enabled : 是否开启读写模式，若开启则会使内存翻倍 
+* Generate Mip Maps : 是否生成MipMap
+* Max Size : 图片最大尺寸
+* Format ： 图片格式
+
+生产MipMap会增加纹理所占内存，但提高渲染效率（`由于UI不会移动且距离Camera距离固定，不生成MipMap`)。
+
+关于在不同平台下，纹理格式的选择，可以参考[Unity的相关文档](https://docs.unity3d.com/Manual/class-TextureImporterOverride.html)。
+
+而关于纹理在不同平台的具体性能比较，主要参考了`UWA`的[分析BLOG](https://blog.uwa4d.com/archives/LoadingPerformance_Texture.html)。
+
+其中主要分析了不同分辨率和格式在不同性能机器下的性能分析。
+如下图所示为不同格式的性能测试：
+![不同纹理格式的性能测试](/img/U3D/Performance/UWATextureFormat.jpg)
+
+除此之外，博客也分析了不同的分辨率和是否开启MipMap对性能的影响，详情可以查看相关blog。
+
+由此得到的结论： 由于加载十分耗时，尽量避免使用：
+
+* 2048*2048大小的纹理。
+* RGBA32
+* MipMap(UI避免)
+* Read/Write(除非需要动态修改图片：如抽奖刮刮乐) 
+
+在Android平台下，尽量使用`ETC1`和`ETC2`格式； 在IOS平台下，尽量使用 `PVRTC`格式。  这样做的原因就是格式在相应平台上，有特定的优化。
+
+## 音频格式
+对于音频的加载格式选项，同样可以参考[Unity官方文档](https://docs.unity3d.com/Manual/class-AudioClip.html)。
+
+主要关注`Load Type`和`Compression Format`。
+LoadType为运行时加载音频的方式：
+
+* Decompress On Load
+* Compressed In Memory
+* Streaming
+
+`Decompress On Load`: 在加载时就将其解压，适合体积小的音效（特效) ; `Compressed In Memory`: 将压缩的音频存储在内存中，使用时即进行解压；`Streaming` : 使用流的方式加载音频，适合如背景音乐等大资源。
+
+在进行UWA检测时，发现世界BOSS关卡中背景音乐采用`Decompress On Load`方式进行加载，从而导致音频内存占用~30M; 改为`Streaming`方式后，为～3M。
+
+而`Compression Format`即为音频格式，项目中选择为:`Vorbis`。
+
+# Hook脚本管理资源加载
+[AssetPostprocessor](https://docs.unity3d.com/ScriptReference/AssetPostprocessor.html)是Unity提供的可以影响资源在导入／导出时的钩子。 通过编写相应的函数，如`OnPreprocessModel` , `OnPreprocessTexture`等来控制资源的格式。
+
+可以通过资源所在的目录来区分不同的资源，从而设置不同的资源格式。以下为项目中所用到的资源选项的代码片段：
+
+```cs
+ void OnPreprocessTexture()
+    {
+        TextureImporter textureImporter = (TextureImporter)assetImporter;
+        textureImporter.mipmapEnabled = false;
+        string path = assetPath.ToLower();
+        if (path.Contains("_nrm") || path.Contains("normal"))
+        {
+            textureImporter.mipmapEnabled = false;
+            textureImporter.textureType = TextureImporterType.Bump;
+
+            OverrideTextformat(textureImporter, false);
+        }
+        else if (path.Contains("_spec") || path.Contains("specular"))
+        {
+            textureImporter.mipmapEnabled = false;
+            textureImporter.textureType = TextureImporterType.Advanced;
+
+            OverrideTextformat(textureImporter, false);
+        }
+```
+
+其中，OverrideTextformat为设置不同平台的格式，以下为其代码片段：
+
+```cs
+ TextureImporterFormat textureFormat = hasAlpha ? TextureImporterFormat.PVRTC_RGBA4 : TextureImporterFormat.PVRTC_RGB4;
+            textureImporter.SetPlatformTextureSettings("Web", 1024, TextureImporterFormat.AutomaticCompressed);
+            textureImporter.SetPlatformTextureSettings("Standalone", 1024, TextureImporterFormat.AutomaticCompressed);
+            textureImporter.SetPlatformTextureSettings("iPhone", 1024, textureFormat);
+            textureFormat = hasAlpha ? TextureImporterFormat.RGBA16 : TextureImporterFormat.ETC_RGB4;
+            textureImporter.SetPlatformTextureSettings("Android", 1024, textureFormat);
+            textureImporter.SetPlatformTextureSettings("FlashPlayer", 1024, TextureImporterFormat.AutomaticCompressed);
+```
+
+以上只是举了一个例子，真实项目中，会根据`资源目录`,`目标平台`等来设置资源格式。  
+
+# 小结
+本篇介绍了不同资源在相应平台的选择策略和通过编写Hook脚本来进行自动化控制。  优化纹理资源在游戏中的占用内存，还可以通过`将纹理拆分成两张ETC1`格式的图片，这些内容在下篇会进行介绍。
+
+~Happy holiday
