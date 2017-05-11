@@ -1,0 +1,90 @@
+---
+layout:     post
+title:      "Alpha通道分离减少图片内存"
+subtitle:   "编写脚本与Shader实现图片ETC分离"
+date:       2017-05-11
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+    - Shader
+    - 性能优化
+    - U3D
+    - 工具类
+
+---
+
+## 前言
+
+在对项目进行性能分析时发现，项目中RGBA/RGB等格式的图片存在很多，浪费内存且加载时间过长。查了一下U3D官方手册，推荐在Android使用ETC2格式。但是，在与UWA客服交流过程中得知，市面上还是有许多不支持ETC2格式的手机，所以决定编写代码/Shader来将图片的Alpha通道分离，分解成两张ETC1格式的图片。
+
+## 实现
+
+主要实现思路：
+
+1. 获取当前选中图片，获取图片的像素值
+2. 将图片的rgb和a值分别存入到新建的两张图片
+3. 保存／输出新生成的两张图片
+
+代码片段：
+
+exture2D sourceTexture2D = AssetDatabase.LoadMainAssetAtPath(filePath) as Texture2D;
+
+```cs
+        TextureImporter soureTextureImporter = AssetImporter.GetAtPath(filePath) as TextureImporter;
+        soureTextureImporter.SetPlatformTextureSettings("Android", 2048, TextureImporterFormat.RGBA32);
+
+        Texture2D alphaTexture = new Texture2D(sourceTexture2D.width, sourceTexture2D.height, TextureFormat.RGBA32, false);
+        Texture2D rgbTexture = new Texture2D(sourceTexture2D.width, sourceTexture2D.height, TextureFormat.RGBA32, false);
+
+        Color32[] destColor32S = alphaTexture.GetPixels32();
+        Color32[] destRGBColor32S = rgbTexture.GetPixels32();
+        Color32[] srcColor32S = sourceTexture2D.GetPixels32();
+
+        for (int n = 0; n < destColor32S.Length; ++n)
+        {
+            destColor32S[n] = new Color32(srcColor32S[n].a, 0, 0, 0);
+        }
+        alphaTexture.SetPixels32(destColor32S);
+        alphaTexture.Apply(false);
+
+        string fileName = Path.GetDirectoryName(filePath) + "/" + Path.GetFileNameWithoutExtension(filePath) + "_A.png";
+        File.WriteAllBytes(fileName, alphaTexture.EncodeToPNG());
+
+        for (int n = 0; n < destRGBColor32S.Length; ++n)
+        {
+            destRGBColor32S[n] = new Color32(srcColor32S[n].r, srcColor32S[n].g, srcColor32S[n].b, 0);
+        }
+        rgbTexture.SetPixels32(destRGBColor32S);
+        rgbTexture.Apply(false);
+
+        string rgbFileName = Path.GetDirectoryName(filePath) + "/" + Path.GetFileNameWithoutExtension(filePath) + "_S.png";
+        File.WriteAllBytes(rgbFileName, rgbTexture.EncodeToPNG());
+```
+
+Shader的编写：
+
+要使用通道分离的图片，需要重新编写特定shader。主要思路就是：由原来的重一张图片换成`两张图片`来决定最终输出颜色:
+
+代码片段(`fragment shader`)：
+
+```cs
+half4 frag(v2f i) : COLOR
+{
+    half4 texcol = tex2D(_MainTex, i.uv);
+    half4 result = texcol;
+    result.a = tex2D(_AlphaTex, i.uv);
+    return result;
+}
+```
+
+## 注意点
+
+* 在`NGUI`中，根据panel数量会选择不同的Shader。    
+    __解决方案__： 编写多个对应shader
+* 在透明度渐变明显的图片使用ETC1的Alpha图失真。     
+    __解决方案__： 使用Alpha格式替换
+    
+
+
+
