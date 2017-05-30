@@ -1,0 +1,69 @@
+---
+layout:     post
+title:      "EarlyZ渲染管线优化"
+subtitle:   "EarlyZ相关概念及实际Shader优化"
+date:       2017-05-30
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+- Shader
+- U3D
+- 性能优化
+
+---
+
+## 前言
+
+最近在整理项目中过往使用的Shader，有一些Shader是从插件如：ShadowGun等移植过来；一些是根据项目新写的，有一些注意事项和风格并不统一。在对Shader的优化整理过程中，主要参考相关的UWA博客和Unity的相关优化文档。     
+
+## Alpha Testing的使用
+
+`Alpha Test`通过判断像素的Alpha值来确定是否渲染该像素。[AlphaTest示例](https://docs.unity3d.com/Manual/SL-AlphaTest.html)。 AlphaTest可用于渲染凹面带透明物体(如树木等)。
+
+使用方式：`AlphaTest Greater 0.6`，当像素值大于0.6时渲染。常用的像素比较指令：
+
+
+指令 | 用途
+------------- | -------------
+Greater  | Alpha大于某一值时渲染
+GEqual  | Alpha大于等于某一值时渲染
+Less | Alpha小于某一值时渲染
+
+而当我在查看[Unity Shader 优化文档时](https://docs.unity3d.com/Manual/SL-ShaderPerformance.html)发现： 不推荐在IOS等平台上使用，使用时会照成性能浪费。这又是为何？使用AlphaTest直接舍弃掉该像素不尽兴渲染，那又为何会造成浪费呢？
+
+AlphaTest通常使用`clip()`来实现。在CG手册中，clip()等同于以下代码：当x值小于0时，将其舍弃。
+
+```c
+void clip(float4 x)
+{
+if (any(x < 0))
+discard;
+}
+```
+
+## AlphaTest 与 EarlyZ
+
+根据Wiki中对Early Fragment Test的解释，是一种GPU通过提前进行片元测试，从而越过`Fragment Shader`阶段的一种优化手段。
+
+如下图所示为正常的RenderPipeline流程：
+
+![renderingPipeline](/img/U3D/Performance/RenderingPipeline.png.png)  
+
+而Unity进行了EarlyZ相关优化后的渲染流程图如下：
+
+![renderingPipeline](/img/U3D/Performance/EarlyZPipeLine.png.png.png)  
+
+可以看出，`Culling Depth Test`位置提前，由原本在Fragment Shader之后变为之前。
+
+那么使用`AlphaTest`对这个流程有什么影响呢？
+
+原因就在于，若使用AlphaTest即discard，则只有在运行相应的Fragment Shader时才能够判断到底是否渲染改像素，所以，GPU在遇到使用discard关键字的fragment shader时，会关闭EarlyZ，从而造成性能的损耗。
+
+## 小结
+
+总结了相关Early Depth Test相关知识。 对于IOS平台的Shader编译，在Xcode Debug时发现（有一个Shader编译不过），项目相关Shader被编译（可选）为Metal ，对IOS的Metal Shader相关的知识学习和优化，也已被提上日程 XD
+
+
+
+
