@@ -48,11 +48,11 @@ discard;
 
 如下图所示为正常的RenderPipeline流程：
 
-![renderingPipeline](/img/U3D/Performance/RenderingPipeline.png.png)  
+![renderingPipeline](/img/U3D/Performance/RenderingPipeline.png)  
 
 而Unity进行了EarlyZ相关优化后的渲染流程图如下：
 
-![renderingPipeline](/img/U3D/Performance/EarlyZPipeLine.png.png.png)  
+![renderingPipeline](/img/U3D/Performance/EarlyZPipeLine.png)  
 
 可以看出，`Culling Depth Test`位置提前，由原本在Fragment Shader之后变为之前。
 
