@@ -1,0 +1,85 @@
+---
+layout:     post
+title:      "透明shader不接受阴影"
+subtitle:   "解决transparent shader不受光源shadow反应"
+date:       2017-06-28
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+- Shader
+- U3D
+- BUG
+
+---
+
+
+## 前言
+
+最近美术在做场景时发现，透明的模型无法对光源反应产生阴影，搜索到[官方解释](https://forum.unity3d.com/threads/no-shadows-visible-on-transparency-shaders.9909/),是因为如果使用透明shader的物体可以接收阴影的话，则会使得渲染效率大大下降。
+
+## 解决方案
+
+核心思想是`通过非透明渲染`来 --> `模拟透明shader` , 从而实现使用改shader的物体模型可以接收阴影。
+
+在此之前，我们先来理解两个相关概念。
+
+1.AlphaTest与Transparent 的区别
+
+在[Unity官方论坛中](https://forum.unity3d.com/threads/difference-between-alphatest-and-transparent-renderqueue.458750/)有相关的解答。 概括为： AlphaTest仍然是非透明渲染队列，从前到后渲染，取值范围在0~2500之间； 而Transparent则为透明队列，从后向前渲染，取值大于2500。
+
+2.decal:blend指令
+
+参考[Unity官方手册](https://docs.unity3d.com/Manual/SL-SurfaceShaders.html), decal:add  与 decal:blend 是在其他表面之上，使用additive / alpha blending 。
+
+下面来看一下具体的shader:
+
+```c
+Shader Environment/TransparentWithShadow{
+	Properties{
+		_MainTex("Base (RGB)", 2D) = "white"{}
+		_Color("Main Color",Color) = (1,1,1,1)
+		_Gloss("Gloss", float) = 2.0
+	}
+	
+	SubShader{
+		Tags{"Queue"="AlphaTest+50" "IgnoreProjector"="True" "RenderType"="Transparent"}
+		LOD 200
+		
+		// self Through
+		Pass{
+			zwrite on Cull back
+			colormask 0
+			}
+			
+		CGPROGRAM
+		#pragma surface surf Lambert decal:blend
+		
+		sampler2D _MainTex;
+		fixed4 _Color;
+		uniform half _Gloss;
+		
+		struct Input{
+			float2 uv_MainTex;
+			};
+			
+		void surf(Input IN, inout SurfaceOutput o)
+		{
+			fixed4 tex = tex2D(_MainTex, IN.uv_MainTex);
+			fixed4 c = tex * _Color;
+			o.Albedo = c * _Gloss;
+			o.Alpha = c.a;
+		}
+		
+		ENDCG
+		}
+		Fallback "Legacy Shaders/Transparent/VertexLit"
+	}
+		
+```
+
+采用以上方案可以既得到了使用透明shader时图片的实现效果，同时也使得shader可以与shadow反应。
+
+## 小结
+
+模拟透明shader效果，实现原有效果基础上，实现与阴影的反应。
