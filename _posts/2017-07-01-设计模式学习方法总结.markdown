@@ -1,0 +1,145 @@
+---
+layout:     post
+title:      "设计模式学习方法总结"
+subtitle:   "利用多种资源和方式学习设计模式"
+date:       2017-07-01
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+- 设计模式
+- U3D
+- c#
+
+---
+最近在间歇时间一直在看设计模式的相关知识，了解设计模式的好处有许多，如：对代码的结构有更加清晰的认识，以经典的MVC为例：
+
+* Model层采用监听者模式来通知观察者数据有所改变。
+* Controller采取策略模式，视图可以调用不同controller以实现不同目的。
+* View采取组合模式，将改变传递到最上层，则改变依次迭代到叶结点（包含迭代模式）
+
+除此之外，在交流学习的过程中，通过使用专用的设计模式术语，能够更加准确的表达相关含义。
+
+学习的最佳方式，就是理论与实践结合，通过书本知识、实际代码和网上的相关代码片段结合，则会取得最佳效果。  
+
+本篇将通过单例模式来演示如何进行实际操作。
+
+#### 书籍与实际代码
+
+在工作中由于使用的是U3D，所以对C#较为熟悉。采用的书籍为[HeadFirst 设计模式](http://shop.oreilly.com/product/9780596007126.do)采用的是JAVA，所以，在[这个网站](http://www.dofactory.com/net/design-patterns)， *.net Design Patterns*,将其代码转换为c#， 同时也包含GOF这本书，在网站上也更清晰的列出了UML图、结构示例代码和实际运行的C#代码，十分方便。
+
+在HeadFirst第五章介绍了单例模式：一个类只有一个实例，并提供一个全局访问点。
+
+通过一个例子（巧克力工厂）介绍了如何实现及其原因：如为何使用private 构造函数，如何处理多线程等。
+
+而在.net design patterns中，给出了三种： 普通、double-check、和处理多线程的。
+
+这里贴出最终处理多线程的代码：
+
+```cs
+using System;
+
+namespace DoFactory.HeadFirst.Singleton.MultiThreading
+{
+    class SingletonClient
+    {
+        static void Main(string[] args)
+        {
+            var singleton = Singleton.getInstance();
+            singleton.SaySomething();
+
+            // .NET singleton threadsafe example.
+
+            var es1 = EagerSingleton.GetInstance();
+            var es2 = EagerSingleton.GetInstance();
+            var es3 = EagerSingleton.GetInstance();
+
+            if (es1 == es2 && es2 == es3)
+            {
+                Console.WriteLine("Same instance");
+            }
+
+            // Wait for user
+            Console.ReadKey();
+        }
+    }
+
+    #region Singleton
+
+    public class Singleton
+    {
+        private static Singleton _uniqueInstance;
+        private static readonly object _syncLock = new Object();
+
+        // other useful instance variables here
+
+        private Singleton() { }
+
+        public static Singleton getInstance()
+        {
+            // Lock entire body of method
+            lock (_syncLock)
+            {
+                if (_uniqueInstance == null)
+                {
+                    _uniqueInstance = new Singleton();
+                }
+                return _uniqueInstance;
+            }
+        }
+
+        // other useful methods here
+        public void SaySomething()
+        {
+            Console.WriteLine("I run, therefore I am");
+        }
+    }
+
+    sealed class EagerSingleton
+    {
+        // CLR eagerly initializes static member when class is first used
+        // CLR guarantees thread safety for static initialisation
+        private static readonly EagerSingleton _instance = new EagerSingleton();
+
+        // Note: constructor is private
+        private EagerSingleton()
+        {
+        }
+
+        public static EagerSingleton GetInstance()
+        {
+            return _instance;
+        }
+    }
+    #endregion
+}
+
+```
+
+通过书本和实际代码的操作，可以更加熟悉相关设计模式。
+
+#### 网上资源学习对比
+
+网上又一些相关的知识内容可以起到更好的补充与巩固知识的作用，如`C# in Depth`的作者关于Singleton模式的相关博客知识。 [博客地址](http://csharpindepth.com/Articles/General/Singleton.aspx) 。
+
+博客介绍了6种从最简单到最“炫技”的写法，介绍了单例模式不同写法的特点和使用时机。 这里列出使用最新语法糖的c#版Singleton：
+
+```cs
+public sealed class Singleton
+{
+    private static readonly Lazy<Singleton> lazy =
+        new Lazy<Singleton>(() => new Singleton());
+    
+    public static Singleton Instance { get { return lazy.Value; } }
+
+    private Singleton()
+    {
+    }
+}
+```
+
+~>~ 帅吧。。。 就是Unity目前还在使用旧版本.Net还无法体验（和多线程Task类似)
+
+#### 小结
+
+总结一下自己在学习设计模式中使用到的材料和网上资源的使用方式。
