@@ -1,0 +1,112 @@
+---
+layout:     post
+title:      "U3D中多线程研究应用(一)"
+subtitle:   "多线程知识基础"
+date:       2017-09-10
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+- 编程
+- U3D
+- c#
+- 多线程
+
+---
+
+在游戏当中有许多需要用到多线程。与此同时，`Coroutine`在U3D中并非多线程，不能够使用*try-catch*，且没有返回值。   所以，花了一些时间研究了一下多线程(C#)的相关知识点以及U3D的整合实现。 第一篇先介绍一下多线程的相关信息。
+
+## 基础知识
+
+首先，关于多线程有许多基础知识，可以通过翻阅MSDN文档或者在SOF中寻找他人的观点。 
+
+例如： `Thread 是什么？` 参考[SOF相关答案](https://stackoverflow.com/questions/5201852/what-is-a-thread-really) : 线程是CPU所需执行的指令集的上下文  --> 即独立的一组CPU寄存器值。
+
+
+还有： `进程与线程的差别？`  参考[SOF相关答案](https://stackoverflow.com/questions/200469/what-is-the-difference-between-a-process-and-a-thread) : 是否拥有共享的内存空间。
+
+
+除此之外还有 ： Task与Thread区别 ： [答案传送门](http://stackoverflow.com/questions/4130194/what-is-the-difference-between-task-and-thread) ;  协程 VS 线程 : [答案传送门]( http://stackoverflow.com/questions/1934715/difference-between-a-coroutine-and-a-thread)。
+
+## Thread基本使用
+
+Thread的使用随着.Net的版本不同在不断的改进。 如老版本的通过使用 `Thread`的底层方式， 到使用TPL（Task Parallel Library）进行多线程的编写。
+
+使用Thread编写多线程程序已经是老方式了，学习此是为了了解相关的线程基本知识，如*死锁*等。
+
+Joseph Albahari 有一系列的关于针对老版本的介绍，感兴趣的可以一看： [Threading in c#](http://www.albahari.com/threading/)。
+
+## Task Parallel Library (TPL)
+
+TPL是为了使用户更方便的编写多线程程序的库。其底层依然使用线程库(ThreadPool)等进行线程的创建与管理。
+
+对于TPL的学习，可以参考[这个链接](https://docs.microsoft.com/en-us/dotnet/standard/parallel-programming/task-based-asynchronous-programming) 。 找到的最丰富的介绍TPL及TPL相关编程方式的教程。
+
+
+关于适用TPL编写多线程的优势：
+
+* 更高效和更具扩展性的使用系统资源。（在底层仍然使用线程池等对线程进行优化)
+* 对线程有更高的可控性。(Task库提供更丰富的操纵Thread的API）
+
+*TPL示例*
+
+示例可以在原网页中查看，线程的创建、等待等（与Lambda结合), 简单例子如下：
+
+ ```cs
+ using System;
+using System.Threading;
+using System.Threading.Tasks;
+
+class CustomData
+{
+   public long CreationTime;
+   public int Name; 
+   public int ThreadNum;
+}
+
+public class Example
+{
+   public static void Main()
+   {
+      Task[] taskArray = new Task[10];
+      for (int i = 0; i < taskArray.Length; i++) {
+         taskArray[i] = Task.Factory.StartNew( (Object obj ) => {
+                                                  CustomData data = obj as CustomData;
+                                                  if (data == null) 
+                                                     return;
+                                     
+                                                  data.ThreadNum = Thread.CurrentThread.ManagedThreadId;
+                                               },
+                                               new CustomData() {Name = i, CreationTime = DateTime.Now.Ticks} );
+      }
+      Task.WaitAll(taskArray);     
+      foreach (var task in taskArray) {
+         var data = task.AsyncState as CustomData;
+         if (data != null)
+            Console.WriteLine("Task #{0} created at {1}, ran on thread #{2}.",
+                              data.Name, data.CreationTime, data.ThreadNum);
+      }                     
+   }
+}
+ ```
+ 
+ 上述例子的含义是： 创建10个线程，并等到全部完成后(*waitall*)，打印。
+ 
+ ## 实际应用中的多线程
+ 
+ 在U3D中使用多线程和传统的C#中有许多不同。
+ 
+ 一， Unity支持的.net版本： 使用.net2.0版本的话，智能使用底层Thread函数来创建、控制多线程代码。
+ 
+ 二， 继承MonoBehaviour的U3D代码只能在主线程中使用，这就涉及到了线程的回调。
+ 
+ 
+__解决方案__：U3D中有许多插件实现，大体方案： 针对一，实现自己的一套Task类来控制线程。 针对二， 也是添加一些调度函数，能更方便的在后台线程调用主线程。
+
+具体的实现细节，等下篇再分析。
+
+## 小结
+
+记录c#多线程方式笔记，以及在U3D中的适配应用(下节）。
+
+
