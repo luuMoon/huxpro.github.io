@@ -1,0 +1,153 @@
+---
+layout:     post
+title:      "U3D中多线程研究应用(二)"
+subtitle:   "多线程在U3D中的应用"
+date:       2017-09-20
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+- 编程
+- U3D
+- c#
+- 多线程
+
+---
+
+## 前言
+
+[上篇](https://luumoon.github.io/2017/09/10/U3D%E4%B8%AD%E5%A4%9A%E7%BA%BF%E7%A8%8B%E7%A0%94%E7%A9%B6%E5%BA%94%E7%94%A8(%E4%B8%80)/) 介绍了c#多线程的相关基础知识，本篇结合U3D介绍相关实际应用。
+
+上文提及到在U3D中使用多线程编程面临两个问题：
+
+
+* .net版本低，无法使用TPL以及async/await
+* 继承MonoBehaviour相关操作只能在主线程执行
+
+
+依据Easy Threading（收费） 和 Thread Ninja（免费）两个插件进行分析与深入了解。
+  
+## Task在U3D的实现
+
+插件Easy Threading采取的方式是通过提供Task类来模仿实现.net中Task类的相关功能，提供用户更加快捷方便的在“应用”层面编写多线程程序。
+
+对于线程所处于的状态，使用enum进行控制 ： 
+  `enum TState { Created, Running, Successful, Aborted, Faulted }` 。
+  
+
+__**Task基本操作:**__
+
+`Task.Run(Action a){}` : 在新线程中创建任务并执行
+
+采用线程池方式进行加载： 
+
+```cs
+ m_runThread = new Thread(new ThreadStart(() =>
+            {
+        try
+                {
+          m_action();
+          m_state = TState.Successful;
+                }
+        catch (Exception e)
+                {
+            ......
+                }
+        finally
+        {
+          m_runThread= null;
+        }
+            }));
+            m_runThread.Start();
+```
+
+`Task.Wait(){}` : 等待Task完成相应操作。
+
+实现原理： 使用 `ManualResetEvent`  实现。 关于ManualResetEvent的使用，参考这篇BLOG ：[5分钟了解ManualResetEvent](http://dotnetpattern.com/threading-manualresetevent) 。
+
+
+__**进阶操作:**__
+
+除了基本操作外，同时实现了一些方便的组合操作，如：当任务完成时，马上执行另一任务：
+
+```cs
+ return Task.Run(() =>
+            {
+                this.Wait();
+                continuationAction(this);
+            });
+```
+
+
+创建一个等待所有被提供任务完成时再执行的Task：
+
+原理： 利用`TState`状态判断Task[]所有任务都完成，再进行任务操作。
+
+
+同时，提供`TaskCompletionSource`以实现对Thread更精确的控制，相关介绍： [TaskCompletionSource使用场景](https://stackoverflow.com/questions/15316613/when-should-taskcompletionsourcet-be-used) 。
+
+
+__**跳转主线程:**__
+
+
+通过使用一个挂在在场景中的`单例`调度脚本`Dispatcher`中，Update()中不断轮询完成任务队列：
+
+```cs
+    Queue<Action> m_q= new Queue<Action>();
+    void Update()
+    {
+      if(m_q.Count>0)
+      {
+        Action a= m_q.Dequeue ();
+                if(a!= null)
+            a();
+      }
+    }
+```
+
+
+关于任务的添加：可使用TaskCompletionSource返回Task，完成：
+
+```cs
+`TaskCompletionSource<bool> tcs= new TaskCompletionSource<bool>();
+      m_q.Enqueue(()=>{
+        a();
+        tcs.SetResult(true);
+      });
+      return tcs.Task;`
+      
+```
+
+
+## 另一种实现方式
+
+插件Thread Ninja采用另一种方式来与底层thread api进行交互：
+
+通过手动实现IEnumerator：即`OnMoveNext`等函数并通过状态Enum完成backThread与主线程序的交互：
+
+```cs
+\\状态
+  private enum RunningState
+        {
+            Init,
+            RunningAsync,
+            PendingYield,
+            ToBackground,
+            RunningSync,
+            CancellationRequested,
+            Done,
+            Error
+        }
+```
+
+
+##小结
+
+介绍在U3D中使用Thread的方式，具体的实现细节可以下载插件进行学习与结合项目进行应用。  
+
+针对IEnumerator的缺点：
+
+* 无法`try-catch`
+* 无返回值
+
+等等，可以通过响应式编程，如`UniRX`解决，之后再做分析总结。
