@@ -35,7 +35,7 @@ tags:
   `enum TState { Created, Running, Successful, Aborted, Faulted }` 。
   
 
-__**Task基本操作:**__
+__Task基本操作:__
 
 `Task.Run(Action a){}` : 在新线程中创建任务并执行
 
@@ -66,7 +66,7 @@ __**Task基本操作:**__
 实现原理： 使用 `ManualResetEvent`  实现。 关于ManualResetEvent的使用，参考这篇BLOG ：[5分钟了解ManualResetEvent](http://dotnetpattern.com/threading-manualresetevent) 。
 
 
-__**进阶操作:**__
+__进阶操作:__
 
 除了基本操作外，同时实现了一些方便的组合操作，如：当任务完成时，马上执行另一任务：
 
@@ -87,7 +87,7 @@ __**进阶操作:**__
 同时，提供`TaskCompletionSource`以实现对Thread更精确的控制，相关介绍： [TaskCompletionSource使用场景](https://stackoverflow.com/questions/15316613/when-should-taskcompletionsourcet-be-used) 。
 
 
-__**跳转主线程:**__
+__跳转主线程:__
 
 
 通过使用一个挂在在场景中的`单例`调度脚本`Dispatcher`中，Update()中不断轮询完成任务队列：
@@ -109,12 +109,12 @@ __**跳转主线程:**__
 关于任务的添加：可使用TaskCompletionSource返回Task，完成：
 
 ```cs
-`TaskCompletionSource<bool> tcs= new TaskCompletionSource<bool>();
+TaskCompletionSource<bool> tcs= new TaskCompletionSource<bool>();
       m_q.Enqueue(()=>{
         a();
         tcs.SetResult(true);
       });
-      return tcs.Task;`
+      return tcs.Task;
       
 ```
 
@@ -141,7 +141,7 @@ __**跳转主线程:**__
 ```
 
 
-##小结
+## 小结
 
 介绍在U3D中使用Thread的方式，具体的实现细节可以下载插件进行学习与结合项目进行应用。  
 
