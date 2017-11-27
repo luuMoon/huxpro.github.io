@@ -15,7 +15,7 @@ tags:
 
 ## 前言
 
-在游戏世界中有贴花有许多应用场景。 最近特效遇到个BUG： 释放的技能在非平地时，会遇到显示不全的问题。   在查看目前手游的相关解决方案时查看， 一般手游中，会尽量使用平的地面来避免， 另一种既是使用__贴花__。
+在游戏世界中有贴花有许多应用场景。 最近特效遇到个BUG： 释放的技能在非平地时，会遇到显示不全的问题。   在查看目前手游的相关解决方案时查看， 一般手游中，会尽量使用平的地面来避免， 另一种既是使用_贴花_。
 
 贴花有不同的实现方式： 计算网格、projector投影。 下面就分别介绍相关的知识及应用。
 
@@ -118,7 +118,7 @@ Shader "Cg projector shader for adding light" {
 
 ## 延迟贴花系统
 
-这个是根据官网的一篇介绍Command Buffer中提到的方式，__CommandBuffer__通过将渲染指令在特定渲染流水线时间点执行，以此来扩展unity的渲染管线。
+这个是根据官网的一篇介绍Command Buffer中提到的方式，_CommandBuffer_通过将渲染指令在特定渲染流水线时间点执行，以此来扩展unity的渲染管线。
 
 ![CommandBuffer](/img/U3D/Decal/commandBuffer.png)
 
@@ -129,7 +129,7 @@ Shader "Cg projector shader for adding light" {
 
 上图为deferred decals。
 
-下载其源码可以看到，在__DeferredDecalSystem__脚本中，维护m_DecalsDiffuse等HashSet，然后在CameraEvent.BeforeLighting,在计算光照之前渲染队列中所有mesh。
+下载其源码可以看到，在_DeferredDecalSystem_脚本中，维护m_DecalsDiffuse等HashSet，然后在CameraEvent.BeforeLighting,在计算光照之前渲染队列中所有mesh。
 
 ```cs
 		buf = new CommandBuffer();
@@ -174,8 +174,8 @@ Shader "Cg projector shader for adding light" {
 		
 ```
 
-注意： 必须使用Deferred Renderring Path 才能够使用此种方法。
+注意： 必须使用Deferred Renderring Path才能够使用此种方法。
 
 ## 小结
 
-介绍了几种Decal System实现贴花方式。  在Asset Store中的__Dynamic Decals__， 测试之后发现，由于使用__Replace Shader__ 等， 效率没达到要求， 所以最后还是使用 __Easy Decal__ 只不过由于封装为DLL， 还是需要使用.Net Reflector等工具来修改。
+介绍了几种Decal System实现贴花方式。在Asset Store中的_Dynamic Decals_， 测试之后发现，由于使用_Replace Shader_ 等，效率没达到要求。 所以最后还是使用 _Easy Decal_ 只不过由于封装为DLL， 还是需要使用.Net Reflector等工具来修改。
