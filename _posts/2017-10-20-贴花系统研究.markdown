@@ -15,7 +15,7 @@ tags:
 
 ## 前言
 
-在游戏世界中有贴花有许多应用场景。 最近特效遇到个BUG： 释放的技能在非平地时，会遇到显示不全的问题。   在查看目前手游的相关解决方案时查看， 一般手游中，会尽量使用平的地面来避免， 另一种既是使用**__贴花__**。
+在游戏世界中有贴花有许多应用场景。 最近特效遇到个BUG： 释放的技能在非平地时，会遇到显示不全的问题。   在查看目前手游的相关解决方案时查看， 一般手游中，会尽量使用平的地面来避免， 另一种既是使用__贴花__。
 
 
 贴花有不同的实现方式： 计算网格、projector投影。 下面就分别介绍相关的知识及应用。
@@ -121,12 +121,12 @@ Shader "Cg projector shader for adding light" {
 
 这个是根据官网的一篇介绍Command Buffer中提到的方式，__CommandBuffer__通过将渲染指令在特定渲染流水线时间点执行，以此来扩展unity的渲染管线。
 
-![CommandBuffer](/img/U3D/Decal/commandBuffer)
+![CommandBuffer](/img/U3D/Decal/commandBuffer.png)
 
 上图为Command Buffer指令可以扩展渲染流水线的位置。
 
 
-![DefDecal](/img/U3D/Decal/DefDecal)
+![DefDecal](/img/U3D/Decal/DefDecal.png)
 
 上图为deferred decals。
 
