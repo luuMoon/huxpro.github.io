@@ -109,8 +109,8 @@ Shader "Cg projector shader for adding light" {
 主要步骤思路如下：
 
 1. 确定受影响的物体： 
-	`DecalUtils.GetAffectedObjects( decal );`
-	将所有MeshRenderer与Decal进行碰撞比较
+   `DecalUtils.GetAffectedObjects( decal );`
+   将所有MeshRenderer与Decal进行碰撞比较
 
 2. 将被影响物体转移到decal坐标系中，重新构建mesh
 3. 根据重新构建的material信息，完成贴花
@@ -132,50 +132,74 @@ Shader "Cg projector shader for adding light" {
 下载其源码可以看到，在_DeferredDecalSystem_脚本中，维护m_DecalsDiffuse等HashSet，然后在CameraEvent.BeforeLighting,在计算光照之前渲染队列中所有mesh。
 
 ```cs
-		buf = new CommandBuffer();
-		buf.name = "Deferred decals";
-		m_Cameras[cam] = buf;
+      buf = new CommandBuffer();
+      buf.name = "Deferred decals";
+      m_Cameras[cam] = buf;
 
-			// set this command buffer to be executed just before deferred lighting pass
-			// in the camera
-			cam.AddCommandBuffer (CameraEvent.BeforeLighting, buf);
-		}
+         // set this command buffer to be executed just before deferred lighting pass
+         // in the camera
+         cam.AddCommandBuffer (CameraEvent.BeforeLighting, buf);
+      }
 
-		//@TODO: in a real system should cull decals, and possibly only
-		// recreate the command buffer when something has changed.
+      //@TODO: in a real system should cull decals, and possibly only
+      // recreate the command buffer when something has changed.
 
-		var system = DeferredDecalSystem.instance;
+      var system = DeferredDecalSystem.instance;
 
-		// copy g-buffer normals into a temporary RT
-		var normalsID = Shader.PropertyToID("_NormalsCopy");
-		buf.GetTemporaryRT (normalsID, -1, -1);
-		buf.Blit (BuiltinRenderTextureType.GBuffer2, normalsID);
-		// render diffuse-only decals into diffuse channel
-		buf.SetRenderTarget (BuiltinRenderTextureType.GBuffer0, BuiltinRenderTextureType.CameraTarget);
-		foreach (var decal in system.m_DecalsDiffuse)
-		{
-			buf.DrawMesh (m_CubeMesh, decal.transform.localToWorldMatrix, decal.m_Material);
-		}
-		// render normals-only decals into normals channel
-		buf.SetRenderTarget (BuiltinRenderTextureType.GBuffer2, BuiltinRenderTextureType.CameraTarget);
-		foreach (var decal in system.m_DecalsNormals)
-		{
-			buf.DrawMesh (m_CubeMesh, decal.transform.localToWorldMatrix, decal.m_Material);
-		}
-		// render diffuse+normals decals into two MRTs
-		RenderTargetIdentifier[] mrt = {BuiltinRenderTextureType.GBuffer0, BuiltinRenderTextureType.GBuffer2};
-		buf.SetRenderTarget (mrt, BuiltinRenderTextureType.CameraTarget);
-		foreach (var decal in system.m_DecalsBoth)
-		{
-			buf.DrawMesh (m_CubeMesh, decal.transform.localToWorldMatrix, decal.m_Material);
-		}
-		// release temporary normals RT
-		buf.ReleaseTemporaryRT (normalsID);
-		
+      // copy g-buffer normals into a temporary RT
+      var normalsID = Shader.PropertyToID("_NormalsCopy");
+      buf.GetTemporaryRT (normalsID, -1, -1);
+      buf.Blit (BuiltinRenderTextureType.GBuffer2, normalsID);
+      // render diffuse-only decals into diffuse channel
+      buf.SetRenderTarget (BuiltinRenderTextureType.GBuffer0, BuiltinRenderTextureType.CameraTarget);
+      foreach (var decal in system.m_DecalsDiffuse)
+      {
+         buf.DrawMesh (m_CubeMesh, decal.transform.localToWorldMatrix, decal.m_Material);
+      }
+      // render normals-only decals into normals channel
+      buf.SetRenderTarget (BuiltinRenderTextureType.GBuffer2, BuiltinRenderTextureType.CameraTarget);
+      foreach (var decal in system.m_DecalsNormals)
+      {
+         buf.DrawMesh (m_CubeMesh, decal.transform.localToWorldMatrix, decal.m_Material);
+      }
+      // render diffuse+normals decals into two MRTs
+      RenderTargetIdentifier[] mrt = {BuiltinRenderTextureType.GBuffer0, BuiltinRenderTextureType.GBuffer2};
+      buf.SetRenderTarget (mrt, BuiltinRenderTextureType.CameraTarget);
+      foreach (var decal in system.m_DecalsBoth)
+      {
+         buf.DrawMesh (m_CubeMesh, decal.transform.localToWorldMatrix, decal.m_Material);
+      }
+      // release temporary normals RT
+      buf.ReleaseTemporaryRT (normalsID);
+      
 ```
 
 注意： 必须使用Deferred Renderring Path才能够使用此种方法。
 
+
+## Particle Decal
+
+粒子Particle也会产生贴花，例如水枪能在地板／墙上随意涂鸦，留下的痕迹便是Decal。同理，粒子特效爆炸等同样可以留在痕迹。
+
+参考自官网例程 ： [例子教学地址及下载地址](https://unity3d.com/cn/learn/tutorials/topics/scripting/drawing-decals-particles)
+
+原理为Particle碰撞，找出碰撞位置，particle画上。其中也有pool优化等，可参考源码。
+
+
+```cs
+    void OnParticleCollision(GameObject other)
+    {
+        int numCollisionEvents = ParticlePhysicsExtensions.GetCollisionEvents (particleLauncher, other, collisionEvents);
+
+        int i = 0;
+        while (i < numCollisionEvents) 
+        {
+            dropletDecalPool.ParticleHit(collisionEvents[i], particleColorGradient);
+            i++;
+        }
+
+    }
+```
 ## 小结
 
-介绍了几种Decal System实现贴花方式。在Asset Store中的_Dynamic Decals_， 测试之后发现，由于使用_Replace Shader_ 等，效率没达到要求。 所以最后还是使用 _Easy Decal_ 只不过由于封装为DLL， 还是需要使用.Net Reflector等工具来修改。
+介绍了几种Decal System实现贴花方式。在Asset Store中的 __Dynamic Decals__， 测试之后发现，由于使用__Replace Shader__ 等，效率没达到要求。 所以最后还是使用 __Easy Decal__ 只不过由于封装为DLL， 还是需要使用.Net Reflector等工具来修改。
