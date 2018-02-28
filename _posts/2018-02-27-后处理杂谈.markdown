@@ -1,0 +1,107 @@
+---
+layout:     post
+title:      "后处理杂谈"
+subtitle:   "后处理的相关实现及相关细节"
+date:       2018-02-27
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+- U3D
+- Shader
+- 后处理
+- 优化
+
+---
+
+## 前言
+
+随便说说后处理相关，游戏中只需要Bloom，在选人和外观界面是需要DOF效果，有许多插件，U3D官方同样有相关研究如： Post-processing Stack。
+
+## 思路
+
+以Post-processing Stack为基础，[github地址](https://github.com/Unity-Technologies/PostProcessing)，考虑到需要的效果并不是很多，选择第二个版本，第一个Post-processing版本将所有效果合到一起，并无必要。
+
+__*效果实现其事就不必讲了，无非为正常的取bloom区域，然后几次模糊后，与原图片叠加*__。
+
+
+探讨些有意思的东西，比如想要存储HDR信息，编码及解码：
+
+```cs
+half4 EncodeHDR(float3 rgb)
+{
+#if USE_RGBM
+    rgb *= 1.0 / 8.0;
+    float m = max(max(rgb.r, rgb.g), max(rgb.b, 1e-6));
+    m = ceil(m * 255.0) / 255.0;
+    return half4(rgb / m, m);
+#else
+    return half4(rgb, 0.0);
+#endif
+}
+
+float3 DecodeHDR(half4 rgba)
+{
+#if USE_RGBM
+    return rgba.rgb * rgba.a * 8.0;
+#else
+    return rgba.rgb;
+#endif
+}
+```
+
+## glow效果的尝试
+
+先插一嘴之前glow效果的尝试，要做一个让使用特定shader，大多是Particle的事物表现出高光效果，而其余的，无论亮度多高，也没有bloom效果，称作glow。
+
+首先是根据这个插件，[glow effect 插件地址 ： https://assetstore.unity.com/packages/vfx/shaders/fullscreen-camera-effects/glow-effect-mobile-friendly-8238](https://assetstore.unity.com/packages/vfx/shaders/fullscreen-camera-effects/glow-effect-mobile-friendly-8238)。
+
+原理便是使用__*替换Shader*__，首先用Camera渲染出这样一张图片： 只有使用特定Shader的物体，才会显示颜色，其余为自带黑色（与DepthTexture类似）。
+
+这就出现个问题，如果每个物体的Shader都需要做处理，那么Draw Call过高； 而通过标签让一部分物体不进行替换，则无法解决层级问题。
+
+之后的思路是，根据这篇[永恒之塔CTO谈论的](http://youxiputao.com/articles/6308), 使用alpha通道，RGBM形式（类似上面提到的HDR RGBM）来处理。
+
+但最后又发现，glow效果主要针对粒子特效，而Particle需要Alpha通道。
+
+理解RGBM有许多文章，这里只是简答的举出一个 : [RGBM原理解析](http://www.xionggf.com/articles/graphic/misc/inside_hdr.html) 。
+
+## Bloom效果真机优化
+
+在真机上跑，发现性能有些差，查了一些文章后，发现： __*OnRenderImage*__ 在手机上会出现一些性能问题。
+
+主要参考自[unity 论坛的这篇讨论](https://forum.unity.com/threads/post-process-mobile-performance-alternatives-to-graphics-blit-onrenderimage.414399/)。
+
+主要原因是： OnrenderImage会使Unity在运行时，CPU调用ReadPixel来读取GPU值。
+
+主要解决方案代码：
+
+```cs
+//old
+void OnRenderImage(RenderTexture src, RenderTexture dest)
+{
+    Graphics.Blit(src,dest);
+}
+
+//new
+RenderTexture myRenderTexture;
+void OnPreRender()
+{
+    myRenderTexture = RenderTexture.GetTemporary(width,height,16);
+    camera.targetTexture = myRenderTexture;
+}
+void OnPostRender()
+{
+    camera.targetTexture = null; //null means framebuffer
+    Graphics.Blit(myRenderTexture,null as RenderTexture, postProcessMaterial, postProcessMaterialPassNum);
+    RenderTexture.ReleaseTemporary(myRenderTexture);
+}
+```
+
+## 小结
+Bloom效果还是会有更多的计算方式，基本原理相同但风格随项目而有所差异。 而Glow效果并没有实现，目前没找到方案。  
+
+
+可能想到的是，1.HDR在手机上的性能消耗能够被接受（手机硬件发展);2.unity渲染管线能够开放出更多的东西，能够有做这件事的基础。
+
+
