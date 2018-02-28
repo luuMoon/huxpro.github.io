@@ -1,0 +1,194 @@
+---
+layout:     post
+title:      "人物渲染"
+subtitle:   "渲染人物的Shader及整合"
+date:       2018-02-27
+author:     "Luffy"
+header-img: "./img/BG/topbackground.jpg"
+catalog: true
+tags:
+- U3D
+- Shader
+- 卡通
+- 人物
+
+---
+
+## 前言
+风格统一的，且有特色的人物渲染会为游戏增色不少，包含了对渲染的公式计算，也包括了如何将各类shader整合以方便美术使用。
+
+## 考量及实现
+
+主要以两方面为基础：
+
+* Toony Colors Pro 插件 ： [插件地址](https://jeanmoreno.com/unity/toonycolorspro/Documentation/TCP2%20Documentation.html)
+* Unity Chan 官方例子，实现根据皮肤颜色确定描边颜色 : [开源地址](https://github.com/unity3d-jp/unitychan-crs/commit/80ae8a513d0daaee44b0cf018fdb2aaa213a5762)
+
+
+以Toony Colors为基础，实现角色渲染。 但具体实现会有些不同，缘由是所要实现的效果有差异，且有些新添的功能： 阴影、描边。
+
+基础实现：
+
+```cs
+Shader "Game/Characters/Diffuse"
+{
+	//渲染
+	void surf(Input IN, inout SurfaceOutput o)
+	{
+		fixed4 tex = tex2D(_MainTex, IN.uv_MainTex);
+#ifdef COLOR_MASK
+		fixed4 colorMask = tex2D(_ColorMaskTex, IN.uv_MainTex);
+		o.Albedo = lerp(tex.rgb, tex.rgb * _NewColor.rgb, colorMask.r);
+#else
+		o.Albedo = tex.rgb;
+#endif
+		o.Alpha = tex.a;
+	}
+}
+
+```
+
+光照的计算(包含在头文件 “Char_Include.cginc"):
+
+```cs
+inline half4 LightingSGColors(SurfaceOutput s, half3 lightDir, half atten)
+{
+	fixed ndl = max(0, dot(s.Normal, lightDir) * 0.5 + 0.5);
+	fixed4 ramp = smoothstep(_RampThreshold - _RampSmooth * 0.5, _RampThreshold + _RampSmooth * 0.5, ndl);
+	ramp *= atten;
+	
+	_SColor = lerp(_HColor, _SColor, _SColor.a);
+	ramp = lerp(_SColor.rgb, _HColor.rgb, ramp);
+	fixed4 c;
+	c.rgb = s.Albedo * _Gloss * _LightColor0.rgb * ramp;
+	c.a = s.Alpha;
+	return c;
+}
+```
+
+同时可以包含高光等不同计算光照方式： __*LightingSGColorsSpec*__
+
+
+添加不同效果，Rim、Outline、Bump等
+
+RIM:
+
+```cs
+void vert(inout appdata_full v, out Inpput o)
+{
+	UNITY_INITIALIZE_OUTPUT(Input,o);
+	float3 viewDir = normalize(ObjSpaceViewDir(v.vertex));
+	half rim = 1.0f - saturate(dot(viewDir, v.normal));
+	o.rim = pow(rim, _RimPower);
+}
+
+
+void surf()
+{
+	...
+	o.Emission = _RimColor.rgb * _RimColor.a * IN.rim;
+}
+```
+
+__*OUTLINE(提出到Char_Outline.cginc)*__:
+
+Outline 的算法有过改变，开始采用单一颜色值，缺点是不太好看，最终讨论出要实现的效果是：随皮肤、衣服颜色（贴图颜色）变化而描边颜色变化。
+
+采用的公式参照自Unity_Chan,官方出的开源角色动作程式。
+
+[github地址](https://github.com/unity3d-jp/unitychan-crs)
+
+Outline现有代码：
+
+
+```cs
+//shader中Outline渲染提出到Char_Outline.cginc
+Pass
+{
+	Cull Front
+	ZTest Less
+	CGPROGRAM
+	#pragma target 2.0
+	#pragma vertex vert
+	#pragma fragment frag
+	#include "UnityCG.cginc"
+	#include "Char_Outline.cginc"
+	ENDCG
+}
+
+//Char_Outline
+#define OUTLINE_DISTANCE_SCALE(0.0016)
+#define OUTLINE_NORMAL_SCALE_MIN(0.003)
+#define OUTLINE_NORMAL_SCALE_MAX(0.030)
+
+v2f vert(appdata_base v)
+{
+	float4 projPos = UnityObjectToClipPos(v.vertex);
+	float4 projNormal = normalize(UnityObjectToClipPos(float4(v.normal, 0)));
+	
+	float distanceToCamera = OUTLINE_DISTANCE_SCALE * projPos.z;
+	float normalScale = _OutlineThickness * lerp(OUTLINE_NORMAL_SCALE_MIN, OUTLINE_NORMAL_SCALE_MAX, distanceToCamera);
+	
+	v2f o;
+	o.pos = projPos + normalScale * projNormal;
+#ifdef UNITY_REVERSED_Z
+	o.pos.z -= _OutlineDepthBias;
+#else
+	o.pos.z += _OutlineDepthBias;
+#endif
+	o.UV = v.texcoord.xy;
+	
+	return o;
+}
+
+inline float GetMaxComponent(float3 inColor)
+{
+	return max(max(inColor.r, inColor.g), inColor.b);
+}
+
+inline float3 SetSaturation(float3 inColor, float inSaturation)
+{
+	float maxComponent = GetMaxComponent(inColor) - 0.0001;
+	float3 saturatedColor = step(maxComponentrrr, inColor) * inColor;
+	return lerp(inColor, saturatedColor, inSaturation);
+}
+
+#define SATURATION_FACTOR 0.6
+#define BRIGHTNESS_FACTOR 0.8
+
+float4 frag(v2f i) : COLOR
+{
+	flaot4 mainMapColor = tex2D(_MainTex, i.UV);
+	float3 outlineColor = BrIGHTNESS_FACTOR * SetSaturation(mainMapColor.rgb, SATURATION_FACTOR) * mainMapColor.rgb;
+	
+	return float4(lerp(outlineColor, _OutlineColor.rgb, _OutlineColor.a), mainMapColor.a * _OutlineColor.a) * _LightColor0;
+}
+
+```
+
+其实便是根据当前像素偏向值（r、g、还是b?), 然后再对其做些颜色值变化。
+
+github上版本公式有可能会更新有所不同，可以Down下来比较分析一下。
+
+
+当将不同效果组合起来，便会有不同组合的多种Shader，为方便Shader的使用，根据Toony Colors插件中的Shader编辑器扩展方式，将不同Shader再编辑器中融合成一个使用。
+
+其中关键字区分：
+
+```cs
+//OUTLINE
+_OutlineColor("#OUTLINE# Outline Color Intensity", Color) = (0,0,0,0)
+
+//RIM
+_RimCOlor("#RIM" Rim Color", Color = (0,0,0,0)
+```
+
+使用`CustomEditor "CharacterInspector`来确定编辑器扩展脚本
+
+具体可查看Toony Colors代码
+
+## 小结
+未完善的换肤等可使用关键字如： #ifdefine COLOR_MASK 等操作，而有许多扩展功能如： *使用顶点颜色影响outline粗细* 等。
+
+同时，一些真机BUG， 如遇到的，在打包关键字中包含了`UNITY_STANDALONE`关键字。  导致了真机平台差异，而导致__Z Fighting__处理方式相反，描边显示不正确。
+
