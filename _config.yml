@@ -70,7 +70,7 @@ duoshuo_share: true                     # set to false if you want to use Commen
 
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
-sidebar-about-description: "为天地立心，为生民立命。<br>继往圣之绝学，开万世之太平。"
+sidebar-about-description: "关注当下，培养有趣的灵魂。"
 sidebar-avatar: /img/BG/head.jpg      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 
